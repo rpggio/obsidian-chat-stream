@@ -1,4 +1,4 @@
 
-import { ThoughtThreadCanvasPlugin } from './ThoughtThreadCanvasPlugin'
+import { TTCanvasPlugin } from './TTCanvasPlugin'
 
-export default ThoughtThreadCanvasPlugin
+export default TTCanvasPlugin

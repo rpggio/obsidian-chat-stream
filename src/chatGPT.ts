@@ -28,7 +28,7 @@ export const defaultChatGPTSettings: ChatGPTSettings = {
    modelType: ChatGPTModelType.Default,
    systemMessage:
       "You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible.",
-   maxTokens: 200,
+   maxTokens: 500,
    temperature: 1.0,
    topP: 1.0,
    presencePenalty: 0,

@@ -1,11 +1,11 @@
 import { ChatGPTModelType } from 'src/chatGPT'
 
-export interface ThoughtThreadPluginSettings {
+export interface TTSettings {
    apiKey: string
    apiModel: string
 }
 
-export const DEFAULT_SETTINGS: ThoughtThreadPluginSettings = {
+export const DEFAULT_SETTINGS: TTSettings = {
    apiKey: '',
    apiModel: ChatGPTModelType.Default.toString()
 }

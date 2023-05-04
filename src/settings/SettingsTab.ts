@@ -1,11 +1,11 @@
 import { App, PluginSettingTab, Setting } from "obsidian"
-import { ThoughtThreadCanvasPlugin } from 'src/ThoughtThreadCanvasPlugin'
-import { getModels } from './PluginSettings'
+import { TTCanvasPlugin } from 'src/TTCanvasPlugin'
+import { getModels } from './TTSettings'
 
-export class LocalSettingsTab extends PluginSettingTab {
-  plugin: ThoughtThreadCanvasPlugin
+export class SettingsTab extends PluginSettingTab {
+  plugin: TTCanvasPlugin
 
-  constructor(app: App, plugin: ThoughtThreadCanvasPlugin) {
+  constructor(app: App, plugin: TTCanvasPlugin) {
     super(app, plugin)
     this.plugin = plugin
   }
@@ -46,4 +46,4 @@ export class LocalSettingsTab extends PluginSettingTab {
   }
 }
 
-export default LocalSettingsTab
+export default SettingsTab

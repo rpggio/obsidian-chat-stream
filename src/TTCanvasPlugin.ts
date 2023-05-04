@@ -1,16 +1,16 @@
 import { around } from "monkey-around"
 import { KeymapContext, Plugin, TFile } from 'obsidian'
 import { ChatGPTModelType, defaultChatGPTSettings, getChatGPTCompletion } from './chatGPT'
-import LocalSettingsTab from './settings/LocalSettingsTab'
-import { DEFAULT_SETTINGS, ThoughtThreadPluginSettings } from './settings/PluginSettings'
+import SettingsTab from './settings/SettingsTab'
+import { DEFAULT_SETTINGS, TTSettings } from './settings/TTSettings'
 
-export class ThoughtThreadCanvasPlugin extends Plugin {
-   settings: ThoughtThreadPluginSettings
+export class TTCanvasPlugin extends Plugin {
+   settings: TTSettings
 
    async onload() {
       await this.loadSettings()
       console.log('settings', this.settings)///
-      this.addSettingTab(new LocalSettingsTab(this.app, this))
+      this.addSettingTab(new SettingsTab(this.app, this))
 
       this.patchCanvas()
    }
@@ -43,8 +43,8 @@ export class ThoughtThreadCanvasPlugin extends Plugin {
 
                         if (!nodeData) return
 
+                        // `setTimeout` below is to allow latest text entry to be committed.
                         if (nodeData.type === 'note') {
-                           // Delay to allow last entered characters to be committed
                            setTimeout(async () => {
                               const generated = await generate(settings, node.text)
                               node.setText(node.text + '\n' + generated)
@@ -52,11 +52,14 @@ export class ThoughtThreadCanvasPlugin extends Plugin {
                            }, 100)
                         }
                         else if (nodeData.type === 'file') {
-                           const content = await readFile(nodeData.file)
-                           if (content) {
-                              const generated = await generate(settings, content)
-                              appendFile(nodeData.file, generated)
-                           }
+                           setTimeout(async () => {
+                              const content = await readFile(nodeData.file)
+                              if (content) {
+                                 const generated = await generate(settings, content)
+                                 appendFile(nodeData.file, generated)
+                              }
+                           }, 100)
+
                         }
                      }
                   })
@@ -96,7 +99,7 @@ export class ThoughtThreadCanvasPlugin extends Plugin {
 }
 
 
-async function generate(settings: ThoughtThreadPluginSettings, prompt: string) {
+async function generate(settings: TTSettings, prompt: string) {
    // console.log('calling GPT', prompt);
 
    return getChatGPTCompletion(
