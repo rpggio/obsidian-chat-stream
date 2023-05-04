@@ -27,9 +27,7 @@ export class TTCanvasPlugin extends Plugin {
 
    async onload() {
       await this.loadSettings()
-      console.log('settings', this.settings)///
       this.addSettingTab(new SettingsTab(this.app, this))
-
       this.patchCanvas()
    }
 
@@ -48,6 +46,8 @@ export class TTCanvasPlugin extends Plugin {
          const canvasViewUninstall = around(canvasView.constructor.prototype, {
             onOpen: (next) => {
                return async function () {
+                  if (!this.scope?.register) return
+                  
                   this.scope.register(['Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
                      evt.preventDefault()
 
@@ -58,34 +58,20 @@ export class TTCanvasPlugin extends Plugin {
                         const node = values[0]
                         if (!node) return
 
-                        // if (!node?.isEditing) return
-
                         const parents = canvas.getEdgesForNode(node)
                            .map((e: any) => e.from.node)
-                        // console.debug({ node, parents })
+
+                        // console.debug({ node, parents, edges: canvas.edges })
 
                         setTimeout(async () => {
-                           let prompt = ''
-
-                           if (parents.length) {
-                              prompt += 'BACKGROUND\n\n'
-                              for (const parent of parents) {
-                                 const parentText = (await getNodeText(parent) || '').trim()
-                                 prompt += parentText + '\n'
-                                 console.log(prompt)///
-                              }
-                              prompt += '\n---\n\nMESSAGE\n\n'
-                           }
-
-                           const nodeText = await getNodeText(node) || ''
-                           prompt += nodeText
-                           // console.debug(prompt)
+                           const prompt = await buildPrompt(node, canvas)
+                           console.debug(prompt)
 
                            const generated = await generate(settings, prompt)
-                           console.debug(generated)
-                           appendText(node, generated)
-
+                           appendText(node, '\n' + generated)
+ 
                            node.blur()
+                           canvas.requestSave()
                         }, 100)
                      }
                   })
@@ -125,6 +111,28 @@ export class TTCanvasPlugin extends Plugin {
    }
 }
 
+async function buildPrompt(node: CanvasNode, canvas: Canvas) {
+   const sections: string[] = []
+
+   const visit = async (node: CanvasNode, depth: number) => {
+      if (depth <= 0) return
+
+      const nodeText = await getNodeText(node) || ''
+      sections.unshift(nodeText)
+
+      const parents = canvas.getEdgesForNode(node)
+         .filter(edge => edge.to.node.id === node.id)
+         .map(edge => edge.from.node)
+      for (const parent of parents) {
+         await visit(parent, depth - 1)
+      }
+   }
+
+   await visit(node, 4)
+
+   return sections.join('\n\n')
+}
+
 async function getNodeText(node: CanvasNode) {
    const nodeData = node.getData()
    switch (nodeData.type) {
@@ -151,7 +159,7 @@ async function generate(settings: TTSettings, prompt: string) {
       settings.apiModel,
       [
          {
-            content: 'Be succinct.',
+            content: 'Respond thoroughly, but use brief language.',
             role: 'system'
          },
          {

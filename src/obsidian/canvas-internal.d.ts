@@ -48,4 +48,5 @@ export interface Canvas {
    selection: Set<CanvasNode>
    nodes: CanvasNode[]
    getEdgesForNode(node: CanvasNode): CanvasEdge[]
+   requestSave(): void
 }

@@ -57,7 +57,7 @@ export async function getChatGPTCompletion(
       body: JSON.stringify(body),
       headers,
    }
-   console.debug('Calling open API', requestParam)
+   console.debug('Calling openAI', requestParam)
    const res: any = await request(requestParam)
       .then((response) => {
          return JSON.parse(response)
