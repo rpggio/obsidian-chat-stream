@@ -23,7 +23,7 @@ devDependencies:
     version: 0.17.3
   obsidian:
     specifier: latest
-    version: 1.2.5(@codemirror/state@6.2.0)(@codemirror/view@6.10.0)
+    version: 1.2.8(@codemirror/state@6.2.0)(@codemirror/view@6.10.0)
   tslib:
     specifier: 2.4.0
     version: 2.4.0
@@ -1022,8 +1022,8 @@ packages:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: true
 
-  /obsidian@1.2.5(@codemirror/state@6.2.0)(@codemirror/view@6.10.0):
-    resolution: {integrity: sha512-RKN4W3PaHsoWwlNRg1SV+iJssQ5vnQYzsCSfmFAUHvA8Q8nzk4pW3HGWXSvor3ZM532KECljG86lEx02OvBwpA==}
+  /obsidian@1.2.8(@codemirror/state@6.2.0)(@codemirror/view@6.10.0):
+    resolution: {integrity: sha512-HrC+feA8o0tXspj4lEAqxb1btwLwHD2oHXSwbbN+CdRHURqbCkuIDLld+nkuyJ1w1c9uvVDRVk8BoeOnWheOrQ==}
     peerDependencies:
       '@codemirror/state': ^6.0.0
       '@codemirror/view': ^6.0.0

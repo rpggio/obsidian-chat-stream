@@ -1,4 +1,4 @@
-import { ChatGPTModelType } from 'src/chatGPT'
+import { ChatGPTModelType } from 'src/openai/chatGPT'
 
 export interface TTSettings {
    apiKey: string
@@ -7,7 +7,7 @@ export interface TTSettings {
 
 export const DEFAULT_SETTINGS: TTSettings = {
    apiKey: '',
-   apiModel: ChatGPTModelType.Default.toString()
+   apiModel: ChatGPTModelType.GPT35.toString()
 }
 
 export function getModels() {
