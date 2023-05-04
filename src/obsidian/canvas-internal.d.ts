@@ -45,6 +45,7 @@ export interface CanvasEdge {
 
 export interface Canvas {
    edges: CanvasEdge[]
+   selection: Set<CanvasNode>
    nodes: CanvasNode[]
    getEdgesForNode(node: CanvasNode): CanvasEdge[]
 }
