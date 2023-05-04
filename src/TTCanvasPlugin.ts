@@ -1,7 +1,6 @@
 import { around } from "monkey-around"
 import { ItemView, KeymapContext, Plugin, TFile } from 'obsidian'
-import { AllCanvasNodeData } from 'obsidian/canvas'
-import { CanvasNode } from './obsidian/canvas-internal'
+import { Canvas, CanvasNode } from './obsidian/canvas-internal'
 import { getChatGPTCompletion } from './openai/chatGPT'
 import SettingsTab from './settings/SettingsTab'
 import { DEFAULT_SETTINGS, TTSettings } from './settings/TTSettings'
@@ -52,33 +51,43 @@ export class TTCanvasPlugin extends Plugin {
                   this.scope.register(['Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
                      evt.preventDefault()
 
-                     const canvas = this.canvas
+                     const canvas: Canvas = this.canvas
                      const selection = canvas.selection
                      if (selection?.size === 1) {
                         const values = Array.from(selection.values()) as any[]
                         const node = values[0]
+                        if (!node) return
 
                         // if (!node?.isEditing) return
 
-                        const nodeData: AllCanvasNodeData = node?.getData()
+                        const parents = canvas.getEdgesForNode(node)
+                           .map((e: any) => e.from.node)
 
-                        if (!nodeData) return
-
-                        const edges = canvas.getEdgesForNode(node)
-                        const parents = edges.map((e: any) => e.from.node)
-
-                        console.log({ node, nodeData, parents })
+                        console.log({ node, parents })
 
                         // if (0 == 0) return null
 
                         setTimeout(async () => {
-                           const context = ''
-                           // parents.forEach()
+                           let prompt = ''
 
-                           const nodeText = await getNodeText(nodeData) || ''
-                           const generated = await generate(settings, nodeText)
-                           console.log({ generated })
+                           if (parents.length) {
+                              prompt += 'BACKGROUND\n\n'
+                              for (const parent of parents) {
+                                 const parentText = (await getNodeText(parent) || '').trim()
+                                 prompt += parentText + '\n'
+                                 console.log(prompt)///
+                              }
+                              prompt += '\n---\n\nMESSAGE\n\n'
+                           }
+
+                           const nodeText = await getNodeText(node) || ''
+                           prompt += nodeText
+                           // console.debug(prompt)
+
+                           const generated = await generate(settings, prompt)
+                           console.debug(generated)
                            appendText(node, generated)
+
                            node.blur()
                         }, 100)
                      }
@@ -119,7 +128,8 @@ export class TTCanvasPlugin extends Plugin {
    }
 }
 
-async function getNodeText(nodeData: AllCanvasNodeData) {
+async function getNodeText(node: CanvasNode) {
+   const nodeData = node.getData()
    switch (nodeData.type) {
       case 'text':
          return nodeData.text
