@@ -62,10 +62,7 @@ export class TTCanvasPlugin extends Plugin {
 
                         const parents = canvas.getEdgesForNode(node)
                            .map((e: any) => e.from.node)
-
-                        console.log({ node, parents })
-
-                        // if (0 == 0) return null
+                        // console.debug({ node, parents })
 
                         setTimeout(async () => {
                            let prompt = ''
