@@ -2,8 +2,11 @@ import { around } from "monkey-around"
 import { ItemView, KeymapContext, Plugin, TFile } from 'obsidian'
 import { Canvas, CanvasNode } from './obsidian/canvas-internal'
 import { getChatGPTCompletion } from './openai/chatGPT'
+import { openai } from './openai/chatGPT-types'
 import SettingsTab from './settings/SettingsTab'
 import { DEFAULT_SETTINGS, TTSettings } from './settings/TTSettings'
+
+const SYSTEM_NOTE_COLOR = '#202060'
 
 export interface CanvasNodeDataBase {
    id: string
@@ -47,7 +50,7 @@ export class TTCanvasPlugin extends Plugin {
             onOpen: (next) => {
                return async function () {
                   if (!this.scope?.register) return
-                  
+
                   this.scope.register(['Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
                      evt.preventDefault()
 
@@ -64,12 +67,17 @@ export class TTCanvasPlugin extends Plugin {
                         // console.debug({ node, parents, edges: canvas.edges })
 
                         setTimeout(async () => {
-                           const prompt = await buildPrompt(node, canvas)
-                           console.debug(prompt)
+                           const messages = await buildMessages(node, canvas)
+                           console.debug(messages)
 
-                           const generated = await generate(settings, prompt)
+                           const generated = await getChatGPTCompletion(
+                              settings.apiKey,
+                              settings.apiModel,
+                              messages
+                           )
+                           
                            appendText(node, '\n' + generated)
- 
+
                            node.blur()
                            canvas.requestSave()
                         }, 100)
@@ -111,7 +119,18 @@ export class TTCanvasPlugin extends Plugin {
    }
 }
 
-async function buildPrompt(node: CanvasNode, canvas: Canvas) {
+const systemPrompt =
+   `You are a thought assistant bot which helps to complete the next thought. 
+Infer the reasoning behind the information you are given.
+Examine it for flaws, gaps, and inconsistencies. 
+You approach questions from a different angle than assumed in the prompt.
+Do not re-state provided information unless asked to. 
+Use step-by-step reasoning. Answer thoroughly. Use brief language.
+Do not include preamble or wrap-up statements.
+For lists, use bullets not numbers.
+`
+
+async function buildMessages(node: CanvasNode, canvas: Canvas) {
    const sections: string[] = []
 
    const visit = async (node: CanvasNode, depth: number) => {
@@ -123,6 +142,7 @@ async function buildPrompt(node: CanvasNode, canvas: Canvas) {
       const parents = canvas.getEdgesForNode(node)
          .filter(edge => edge.to.node.id === node.id)
          .map(edge => edge.from.node)
+
       for (const parent of parents) {
          await visit(parent, depth - 1)
       }
@@ -130,7 +150,32 @@ async function buildPrompt(node: CanvasNode, canvas: Canvas) {
 
    await visit(node, 4)
 
-   return sections.join('\n\n')
+   const messages: openai.ChatCompletionRequestMessage[] = [
+      {
+         content: systemPrompt,
+         role: 'system'
+      }
+   ]
+
+   const instruction = sections.pop()
+
+   if (!instruction) {
+      throw new Error('No instruction found')
+   }
+
+   if (sections.length > 0) {
+      messages.push(...sections.map(content => ({
+         content,
+         role: 'user'
+      }) as openai.ChatCompletionRequestMessage))
+   }
+
+   messages.push({
+      content: instruction,
+      role: 'user'
+   })
+
+   return messages
 }
 
 async function getNodeText(node: CanvasNode) {
@@ -153,28 +198,11 @@ async function appendText(node: CanvasNode, text: string) {
    }
 }
 
-async function generate(settings: TTSettings, prompt: string) {
-   return getChatGPTCompletion(
-      settings.apiKey,
-      settings.apiModel,
-      [
-         {
-            content: 'Respond thoroughly, but use brief language.',
-            role: 'system'
-         },
-         {
-            content: prompt,
-            role: 'user'
-         }
-      ]
-   )
-}
-
 async function readFile(path: string) {
    const file = this.app.vault.getAbstractFileByPath(path)
    if (file instanceof TFile) {
       const body = await app.vault.read(file)
-      return `#${file.basename}\n${body}`
+      return `## ${file.basename}\n${body}`
    }
 }
 
