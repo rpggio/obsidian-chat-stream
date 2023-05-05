@@ -1,12 +1,12 @@
 import { around } from "monkey-around"
-import { ItemView, KeymapContext, Plugin, TFile } from 'obsidian'
+import { ItemView, KeymapContext, Plugin, TFile, requireApiVersion } from 'obsidian'
 import { Canvas, CanvasNode } from './obsidian/canvas-internal'
+import { addEdge } from './obsidian/obsidian-utils'
 import { getChatGPTCompletion } from './openai/chatGPT'
 import { openai } from './openai/chatGPT-types'
 import SettingsTab from './settings/SettingsTab'
 import { DEFAULT_SETTINGS, TTSettings } from './settings/TTSettings'
-
-const SYSTEM_NOTE_COLOR = '#202060'
+import { random } from './utils'
 
 export interface CanvasNodeDataBase {
    id: string
@@ -29,14 +29,17 @@ export class TTCanvasPlugin extends Plugin {
    settings: TTSettings
 
    async onload() {
+      if (!requireApiVersion("1.1.10")) {
+         console.error('Thought Thread requires Obsidian 1.1.10 or higher')
+         return
+      }
+
       await this.loadSettings()
       this.addSettingTab(new SettingsTab(this.app, this))
       this.patchCanvas()
    }
 
-   onunload() {
-
-   }
+   onunload() {}
 
    patchCanvas() {
       const settings = this.settings
@@ -47,6 +50,14 @@ export class TTCanvasPlugin extends Plugin {
          if (!canvasView) return false
 
          const canvasViewUninstall = around(canvasView.constructor.prototype, {
+            createTextNode: (next) => {
+               return function (...args: any[]) {
+                  console.log('createTextNode', args)///
+
+                  return next.call(this, ...args)
+               }
+            },
+
             onOpen: (next) => {
                return async function () {
                   if (!this.scope?.register) return
@@ -64,10 +75,11 @@ export class TTCanvasPlugin extends Plugin {
                         const parents = canvas.getEdgesForNode(node)
                            .map((e: any) => e.from.node)
 
-                        // console.debug({ node, parents, edges: canvas.edges })
+                        // console.debug({ canvas, node, parents, edges: canvas.edges }) ///
 
                         setTimeout(async () => {
                            const messages = await buildMessages(node, canvas)
+
                            console.debug(messages)
 
                            const generated = await getChatGPTCompletion(
@@ -75,11 +87,8 @@ export class TTCanvasPlugin extends Plugin {
                               settings.apiModel,
                               messages
                            )
-                           
-                           appendText(node, '\n' + generated)
 
-                           node.blur()
-                           canvas.requestSave()
+                           createNode(canvas, node, generated)
                         }, 100)
                      }
                   })
@@ -131,13 +140,18 @@ For lists, use bullets not numbers.
 `
 
 async function buildMessages(node: CanvasNode, canvas: Canvas) {
-   const sections: string[] = []
+   const messages: openai.ChatCompletionRequestMessage[] = []
 
    const visit = async (node: CanvasNode, depth: number) => {
       if (depth <= 0) return
 
+      const nodeData = node.getData()
+
       const nodeText = await getNodeText(node) || ''
-      sections.unshift(nodeText)
+      messages.unshift({
+         content: nodeText,
+         role: nodeData.chat_role || 'user'
+      })
 
       const parents = canvas.getEdgesForNode(node)
          .filter(edge => edge.to.node.id === node.id)
@@ -148,31 +162,14 @@ async function buildMessages(node: CanvasNode, canvas: Canvas) {
       }
    }
 
+   // Visit the node + 3 ancestor levels
    await visit(node, 4)
 
-   const messages: openai.ChatCompletionRequestMessage[] = [
-      {
-         content: systemPrompt,
-         role: 'system'
-      }
-   ]
+   if (!messages.length) return []
 
-   const instruction = sections.pop()
-
-   if (!instruction) {
-      throw new Error('No instruction found')
-   }
-
-   if (sections.length > 0) {
-      messages.push(...sections.map(content => ({
-         content,
-         role: 'user'
-      }) as openai.ChatCompletionRequestMessage))
-   }
-
-   messages.push({
-      content: instruction,
-      role: 'user'
+   messages.unshift({
+      content: systemPrompt,
+      role: 'system'
    })
 
    return messages
@@ -211,4 +208,56 @@ async function appendFile(path: string, content: string) {
    if (file instanceof TFile) {
       return this.app.vault.append(file, content)
    }
+}
+
+const defaultWidth = 400
+const pxPerChar = 5
+const pxPerLine = 28
+const assistantColor = "6"
+const newNoteMargin = 64
+
+const createNode = async (canvas: any, parentNode: CanvasNode, text: string) => {
+   if (!canvas || !parentNode) {
+      console.error('Invalid arguments', { canvas, parentNode, text })
+      return
+   }
+
+   const width = Math.max(defaultWidth, parentNode.width)
+   const calcTextHeight = Math.round(12 + pxPerLine * text.length / (defaultWidth / pxPerChar))
+   const height = Math.max(parentNode.height, calcTextHeight)
+
+   const newNode = canvas.createTextNode(
+      {
+         pos: {
+            x: parentNode.x,
+            y: parentNode.y + parentNode.height + height * 0.5 + newNoteMargin
+         },
+         position: 'left',
+         size: { height, width },
+         text,
+         focus: false
+      }
+   )
+   newNode.setData({
+      color: assistantColor,
+      chat_role: 'assistant'
+   })
+
+   canvas.deselectAll()
+   canvas.addNode(newNode)
+
+   addEdge(canvas, random(16), {
+      fromOrTo: "from",
+      side: "bottom",
+      node: parentNode,
+   }, {
+      fromOrTo: "to",
+      side: "top",
+      node: newNode,
+   })
+
+   canvas.selectOnly(newNode, false /* startEditing */)
+   canvas.requestSave()
+
+   return newNode
 }
