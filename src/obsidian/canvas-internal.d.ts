@@ -51,7 +51,7 @@ export interface Canvas {
    nodes: CanvasNode[]
    wrapperEl: HTMLElement | null
    addNode(node: CanvasNode): void
-   createTextNode(options: object): CanvasNode
+   createTextNode(options: CreateNodeOptions): CanvasNode
    deselectAll(): void
    getData(): CanvasData
    getEdgesForNode(node: CanvasNode): CanvasEdge[]
@@ -59,4 +59,12 @@ export interface Canvas {
    requestFrame(): Promise<void>
    requestSave(): Promise<void>
    selectOnly(node: CanvasNode, startEditing: boolean): void
+}
+
+export interface CreateNodeOptions {
+   text: string,
+   pos?: { x: number, y: number } 
+   position?: 'left' | 'right',
+   size?: { height?: number, width?: number },
+   focus?: boolean
 }

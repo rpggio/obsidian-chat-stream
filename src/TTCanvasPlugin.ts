@@ -1,7 +1,7 @@
 import { around } from "monkey-around"
 import { ItemView, KeymapContext, Plugin, TFile, requireApiVersion } from 'obsidian'
 import { AllCanvasNodeData } from 'obsidian/canvas'
-import { Canvas, CanvasNode } from './obsidian/canvas-internal'
+import { Canvas, CanvasNode, CreateNodeOptions } from './obsidian/canvas-internal'
 import { addEdge } from './obsidian/obsidian-utils'
 import { getChatGPTCompletion } from './openai/chatGPT'
 import { openai } from './openai/chatGPT-types'
@@ -31,7 +31,7 @@ export class TTCanvasPlugin extends Plugin {
 
    async onload() {
       if (!requireApiVersion("1.1.10")) {
-         console.error('Thought Thread requires Obsidian 1.1.10 or higher')
+         console.error('Chat Stream requires Obsidian 1.1.10 or higher')
          return
       }
 
@@ -76,9 +76,10 @@ export class TTCanvasPlugin extends Plugin {
 
                      if (node) {
                         if (node.getData().chat_role === 'assistant') {
-                           const created = createNode(canvas, node, '')
+                           const created = createNode(canvas, node, { text: '', size: { height: 64 } })
                            canvas.selectOnly(created, true /* startEditing */)
                            await canvas.requestSave()
+                           await sleep(0)
                            created.startEditing()
                         } else {
                            // Last typed characters might not be applied to note yet
@@ -100,10 +101,12 @@ export class TTCanvasPlugin extends Plugin {
                               messages
                            )
 
-                           const created = createNode(canvas, node, generated, {
-                              color: assistantColor,
-                              chat_role: 'assistant'
-                           })
+                           const created = createNode(canvas, node,
+                              { text: generated },
+                              {
+                                 color: assistantColor,
+                                 chat_role: 'assistant'
+                              })
                            canvas.selectOnly(created, false /* startEditing */)
                            await canvas.requestSave()
                         }
@@ -118,7 +121,7 @@ export class TTCanvasPlugin extends Plugin {
 
          const leaf = canvasView.leaf as any
          leaf.rebuildView()
-         console.log("Thought Thread: canvas view patched")
+         console.log("Chat Stream: canvas view patched")
          return true
       }
 
@@ -146,14 +149,14 @@ export class TTCanvasPlugin extends Plugin {
 }
 
 const systemPrompt =
-   `You are a thought assistant bot which helps to complete the next thought. 
-Infer the reasoning behind the information you are given.
-Examine it for flaws, gaps, and inconsistencies. 
-You approach questions from a different angle than assumed in the prompt.
-Do not re-state provided information unless asked to. 
-Use step-by-step reasoning. Answer thoroughly. Use brief language.
-Do not include preamble or wrap-up statements.
-For lists, use bullets not numbers.
+   `You are a sound-boarding and critical analysis bot. 
+Think about the unstated intent behind the requests I provide.
+Examine my comments for flaws, gaps, and inconsistencies. 
+Do not take my requests literally. Think about the best approach for responding.
+Do not restate my information unless I ask for it. 
+Do not include caveats or disclaimers.
+When formatting lists, use bullets not numbers.
+Use step-by-step reasoning. Be brief.
 `
 
 async function buildMessages(node: CanvasNode, canvas: Canvas) {
@@ -239,15 +242,20 @@ const pxPerLine = 28
 const assistantColor = "6"
 const newNoteMargin = 64
 
-const createNode = (canvas: Canvas, parentNode: CanvasNode, text: string,
-   nodeData?: Partial<AllCanvasNodeData>) => {
+const createNode = (
+   canvas: Canvas,
+   parentNode: CanvasNode,
+   nodeOptions: CreateNodeOptions,
+   nodeData?: Partial<AllCanvasNodeData>
+) => {
    if (!canvas || !parentNode) {
       throw new Error('Invalid arguments')
    }
 
-   const width = Math.max(minWidth, parentNode.width)
+   const { text } = nodeOptions
+   const width = nodeOptions?.size?.width || Math.max(minWidth, parentNode.width)
    const calcTextHeight = Math.round(12 + pxPerLine * text.length / (minWidth / pxPerChar))
-   const height = Math.max(parentNode.height, calcTextHeight)
+   const height = nodeOptions?.size?.height || Math.max(parentNode.height, calcTextHeight)
 
    const newNode = canvas.createTextNode(
       {

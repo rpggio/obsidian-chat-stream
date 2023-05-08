@@ -1,9 +1,9 @@
 {
-	"id": "thought-thread",
-	"name": "Thought Thread",
+	"id": "chat-stream",
+	"name": "Chat Stream",
 	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "A canvas plugin for using AI completion with threads of canvas nodes.",
+	"minAppVersion": "1.1.10",
+	"description": "Create branching GPT chats using Obsidian canvas",
 	"author": "Ryan P Smith",
 	"authorUrl": "https://mi.digital",
 	"isDesktopOnly": false
