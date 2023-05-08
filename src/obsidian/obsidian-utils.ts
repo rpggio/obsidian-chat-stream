@@ -1,24 +1,25 @@
+import { Canvas } from './canvas-internal'
 
 interface CanvasEdge {
-	fromOrTo: string;
+	fromOrTo: string
 	side: string,
 	node: any,
 }
 
-export const addEdge = (canvas: any, edgeID: string, fromEdge: CanvasEdge, toEdge: CanvasEdge) => {
-	if(!canvas) return;
+export const addEdge = (canvas: Canvas, edgeID: string, fromEdge: CanvasEdge, toEdge: CanvasEdge) => {
+	if (!canvas) return
 
-	const data = canvas.getData();
+	const data = canvas.getData()
 
-	if(!data) return;
+	if (!data) return
 
 	canvas.importData({
 		"edges": [
 			...data.edges,
-			{"id":edgeID,"fromNode":fromEdge.node.id,"fromSide":fromEdge.side,"toNode":toEdge.node.id,"toSide":toEdge.side}
+			{ "id": edgeID, "fromNode": fromEdge.node.id, "fromSide": fromEdge.side, "toNode": toEdge.node.id, "toSide": toEdge.side }
 		],
 		"nodes": data.nodes,
 	})
 
-	canvas.requestFrame();
+	canvas.requestFrame()
 }

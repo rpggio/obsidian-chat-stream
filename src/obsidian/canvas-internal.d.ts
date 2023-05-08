@@ -1,5 +1,5 @@
 import { App } from 'obsidian'
-import { AllCanvasNodeData } from 'obsidian/canvas'
+import { AllCanvasNodeData, CanvasData } from 'obsidian/canvas'
 
 export interface CanvasNode {
    id: string
@@ -26,12 +26,14 @@ export interface CanvasNode {
    y: number
    zIndex: number
    convertToFile(): Promise<void>
+   focus(): void
    getData(): AllCanvasNodeData
    initialize(): void
    render(): void
-   setData(data: AllCanvasNodeData): Promise<void>
+   setData(data: Partial<AllCanvasNodeData>): void
    setText(text: string): Promise<void>
    showMenu(): void
+   startEditing(): void
 }
 
 export interface CanvasEdge {
@@ -47,6 +49,14 @@ export interface Canvas {
    edges: CanvasEdge[]
    selection: Set<CanvasNode>
    nodes: CanvasNode[]
+   wrapperEl: HTMLElement | null
+   addNode(node: CanvasNode): void
+   createTextNode(options: object): CanvasNode
+   deselectAll(): void
+   getData(): CanvasData
    getEdgesForNode(node: CanvasNode): CanvasEdge[]
-   requestSave(): void
+   importData(data: { nodes: object[], edges: object[] }): void
+   requestFrame(): Promise<void>
+   requestSave(): Promise<void>
+   selectOnly(node: CanvasNode, startEditing: boolean): void
 }

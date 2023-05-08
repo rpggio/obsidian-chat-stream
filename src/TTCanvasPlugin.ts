@@ -1,5 +1,6 @@
 import { around } from "monkey-around"
 import { ItemView, KeymapContext, Plugin, TFile, requireApiVersion } from 'obsidian'
+import { AllCanvasNodeData } from 'obsidian/canvas'
 import { Canvas, CanvasNode } from './obsidian/canvas-internal'
 import { addEdge } from './obsidian/obsidian-utils'
 import { getChatGPTCompletion } from './openai/chatGPT'
@@ -39,7 +40,7 @@ export class TTCanvasPlugin extends Plugin {
       this.patchCanvas()
    }
 
-   onunload() {}
+   onunload() { }
 
    patchCanvas() {
       const settings = this.settings
@@ -52,8 +53,6 @@ export class TTCanvasPlugin extends Plugin {
          const canvasViewUninstall = around(canvasView.constructor.prototype, {
             createTextNode: (next) => {
                return function (...args: any[]) {
-                  console.log('createTextNode', args)///
-
                   return next.call(this, ...args)
                }
             },
@@ -66,19 +65,32 @@ export class TTCanvasPlugin extends Plugin {
                      evt.preventDefault()
 
                      const canvas: Canvas = this.canvas
+                     await canvas.requestFrame()
+
                      const selection = canvas.selection
-                     if (selection?.size === 1) {
-                        const values = Array.from(selection.values()) as any[]
-                        const node = values[0]
-                        if (!node) return
+                     if (selection?.size !== 1) return
+                     const values = Array.from(selection.values()) as CanvasNode[]
+                     const node = values[0]
 
-                        const parents = canvas.getEdgesForNode(node)
-                           .map((e: any) => e.from.node)
+                     // console.debug({ canvas, node, parents, edges: canvas.edges }) ///
 
-                        // console.debug({ canvas, node, parents, edges: canvas.edges }) ///
+                     if (node) {
+                        if (node.getData().chat_role === 'assistant') {
+                           const created = createNode(canvas, node, '')
+                           canvas.selectOnly(created, true /* startEditing */)
+                           await canvas.requestSave()
+                           created.startEditing()
+                        } else {
+                           // Last typed characters might not be applied to note yet
+                           await sleep(500)
 
-                        setTimeout(async () => {
+                           const parents = canvas.getEdgesForNode(node)
+                              .map((e: any) => e.from.node)
+
                            const messages = await buildMessages(node, canvas)
+                           if (!messages.length) return
+
+                           // node.containerEl.addClasses(['loading', 'time'])
 
                            console.debug(messages)
 
@@ -88,8 +100,13 @@ export class TTCanvasPlugin extends Plugin {
                               messages
                            )
 
-                           createNode(canvas, node, generated)
-                        }, 100)
+                           const created = createNode(canvas, node, generated, {
+                              color: assistantColor,
+                              chat_role: 'assistant'
+                           })
+                           canvas.selectOnly(created, false /* startEditing */)
+                           await canvas.requestSave()
+                        }
                      }
                   })
                   return next.call(this)
@@ -141,13 +158,19 @@ For lists, use bullets not numbers.
 
 async function buildMessages(node: CanvasNode, canvas: Canvas) {
    const messages: openai.ChatCompletionRequestMessage[] = []
+   const lengthLimit = 5000
+   let totalLength = 0
 
    const visit = async (node: CanvasNode, depth: number) => {
       if (depth <= 0) return
 
       const nodeData = node.getData()
-
       const nodeText = await getNodeText(node) || ''
+
+      const textLength = nodeText.length
+      if (totalLength + textLength > lengthLimit) return
+      totalLength += textLength
+
       messages.unshift({
          content: nodeText,
          role: nodeData.chat_role || 'user'
@@ -163,7 +186,7 @@ async function buildMessages(node: CanvasNode, canvas: Canvas) {
    }
 
    // Visit the node + 3 ancestor levels
-   await visit(node, 4)
+   await visit(node, 6)
 
    if (!messages.length) return []
 
@@ -210,20 +233,20 @@ async function appendFile(path: string, content: string) {
    }
 }
 
-const defaultWidth = 400
+const minWidth = 400
 const pxPerChar = 5
 const pxPerLine = 28
 const assistantColor = "6"
 const newNoteMargin = 64
 
-const createNode = async (canvas: any, parentNode: CanvasNode, text: string) => {
+const createNode = (canvas: Canvas, parentNode: CanvasNode, text: string,
+   nodeData?: Partial<AllCanvasNodeData>) => {
    if (!canvas || !parentNode) {
-      console.error('Invalid arguments', { canvas, parentNode, text })
-      return
+      throw new Error('Invalid arguments')
    }
 
-   const width = Math.max(defaultWidth, parentNode.width)
-   const calcTextHeight = Math.round(12 + pxPerLine * text.length / (defaultWidth / pxPerChar))
+   const width = Math.max(minWidth, parentNode.width)
+   const calcTextHeight = Math.round(12 + pxPerLine * text.length / (minWidth / pxPerChar))
    const height = Math.max(parentNode.height, calcTextHeight)
 
    const newNode = canvas.createTextNode(
@@ -238,10 +261,10 @@ const createNode = async (canvas: any, parentNode: CanvasNode, text: string) => 
          focus: false
       }
    )
-   newNode.setData({
-      color: assistantColor,
-      chat_role: 'assistant'
-   })
+
+   if (nodeData) {
+      newNode.setData(nodeData)
+   }
 
    canvas.deselectAll()
    canvas.addNode(newNode)
@@ -255,9 +278,6 @@ const createNode = async (canvas: any, parentNode: CanvasNode, text: string) => 
       side: "top",
       node: newNode,
    })
-
-   canvas.selectOnly(newNode, false /* startEditing */)
-   canvas.requestSave()
 
    return newNode
 }
