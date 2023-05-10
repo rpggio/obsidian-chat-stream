@@ -76,14 +76,18 @@ export class TTCanvasPlugin extends Plugin {
 
                      if (node) {
                         if (node.getData().chat_role === 'assistant') {
-                           const created = createNode(canvas, node, { text: '', size: { height: 64 } })
+                           const created = createNode(canvas, node, { text: '', size: { height: 100 } })
                            canvas.selectOnly(created, true /* startEditing */)
+
+                           // startEditing() doesn't work if called immediately
                            await canvas.requestSave()
                            await sleep(0)
+
                            created.startEditing()
                         } else {
                            // Last typed characters might not be applied to note yet
-                           await sleep(500)
+                           await canvas.requestSave()
+                           await sleep(200)
 
                            const parents = canvas.getEdgesForNode(node)
                               .map((e: any) => e.from.node)
@@ -91,23 +95,32 @@ export class TTCanvasPlugin extends Plugin {
                            const messages = await buildMessages(node, canvas)
                            if (!messages.length) return
 
-                           // node.containerEl.addClasses(['loading', 'time'])
-
                            console.debug(messages)
 
-                           const generated = await getChatGPTCompletion(
-                              settings.apiKey,
-                              settings.apiModel,
-                              messages
-                           )
-
                            const created = createNode(canvas, node,
-                              { text: generated },
+                              {
+                                 text: `Calling GPT (${settings.apiModel})...`,
+                                 size: { height: 60 }
+                              },
                               {
                                  color: assistantColor,
                                  chat_role: 'assistant'
                               })
-                           canvas.selectOnly(created, false /* startEditing */)
+
+                           try {
+                              const generated = await getChatGPTCompletion(
+                                 settings.apiKey,
+                                 settings.apiModel,
+                                 messages
+                              )
+                              created.setText(generated)
+                              const height = calcHeight({ text: generated, parentHeight: node.height })
+                              created.moveAndResize({ height, width: created.width, x: created.x, y: created.y })
+                              canvas.selectOnly(created, false /* startEditing */)
+                           } catch {
+                              canvas.removeNode(created)
+                           }
+
                            await canvas.requestSave()
                         }
                      }
@@ -151,11 +164,10 @@ export class TTCanvasPlugin extends Plugin {
 const systemPrompt =
    `You are a sound-boarding and critical analysis bot. 
 Think about the unstated intent behind the requests I provide.
-Examine my comments for flaws, gaps, and inconsistencies. 
-Do not take my requests literally. Think about the best approach for responding.
+Do not take my requests literally. Evaluate the best approach before responding.
 Do not restate my information unless I ask for it. 
 Do not include caveats or disclaimers.
-When formatting lists, use bullets not numbers.
+When formatting lists, use bulleted lists (dash character), not numbered lists.
 Use step-by-step reasoning. Be brief.
 `
 
@@ -242,6 +254,11 @@ const pxPerLine = 28
 const assistantColor = "6"
 const newNoteMargin = 64
 
+const calcHeight = (options: { parentHeight: number, text: string }) => {
+   const calcTextHeight = Math.round(12 + pxPerLine * options.text.length / (minWidth / pxPerChar))
+   return Math.max(options.parentHeight, calcTextHeight)
+}
+
 const createNode = (
    canvas: Canvas,
    parentNode: CanvasNode,
@@ -254,9 +271,8 @@ const createNode = (
 
    const { text } = nodeOptions
    const width = nodeOptions?.size?.width || Math.max(minWidth, parentNode.width)
-   const calcTextHeight = Math.round(12 + pxPerLine * text.length / (minWidth / pxPerChar))
-   const height = nodeOptions?.size?.height || Math.max(parentNode.height, calcTextHeight)
-
+   const height = nodeOptions?.size?.height || calcHeight({ text, parentHeight: parentNode.height })
+ 
    const newNode = canvas.createTextNode(
       {
          pos: {

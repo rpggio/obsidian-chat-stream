@@ -29,11 +29,16 @@ export interface CanvasNode {
    focus(): void
    getData(): AllCanvasNodeData
    initialize(): void
+   moveAndResize(options: MoveAndResizeOptions): void
    render(): void
    setData(data: Partial<AllCanvasNodeData>): void
    setText(text: string): Promise<void>
    showMenu(): void
    startEditing(): void
+}
+
+export interface MoveAndResizeOptions {
+   x?: number, y?: number, width?: number, height?: number
 }
 
 export interface CanvasEdge {
@@ -56,6 +61,7 @@ export interface Canvas {
    getData(): CanvasData
    getEdgesForNode(node: CanvasNode): CanvasEdge[]
    importData(data: { nodes: object[], edges: object[] }): void
+   removeNode(node: CanvasNode): void
    requestFrame(): Promise<void>
    requestSave(): Promise<void>
    selectOnly(node: CanvasNode, startEditing: boolean): void
