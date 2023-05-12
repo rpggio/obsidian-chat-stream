@@ -1,11 +1,11 @@
 {
 	"id": "chat-stream",
 	"name": "Chat Stream",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"minAppVersion": "1.1.10",
 	"description": "Create branching GPT chats using Obsidian canvas",
 	"author": "Ryan P Smith",
-	"authorUrl": "https://mi.digital",
+	"authorUrl": "https://github.com/rpggio",
 	"isDesktopOnly": false,
 	"fundingUrl": {
 		"Buy Me a Coffee": "https://bmc.link/ryanp"
