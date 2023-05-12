@@ -2,7 +2,7 @@ import { around } from "monkey-around"
 import { ItemView, KeymapContext, Plugin, TFile, requireApiVersion } from 'obsidian'
 import { AllCanvasNodeData } from 'obsidian/canvas'
 import { Canvas, CanvasNode, CreateNodeOptions } from './obsidian/canvas-internal'
-import { addEdge } from './obsidian/obsidian-utils'
+import { addEdge, trapError } from './obsidian/obsidian-utils'
 import { getChatGPTCompletion } from './openai/chatGPT'
 import { openai } from './openai/chatGPT-types'
 import { ChatStreamSettings, DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT } from './settings/ChatStreamSettings'
@@ -52,13 +52,13 @@ export class ChatStreamPlugin extends Plugin {
          if (!canvasView) return false
 
          const canvasViewUninstall = around(canvasView.constructor.prototype, {
-            createTextNode: (next) => {
+            createTextNode: trapError((next) => {
                return function (...args: any[]) {
                   return next.call(this, ...args)
                }
-            },
+            }),
 
-            onOpen: (next) => {
+            onOpen: trapError((next) => {
                return async function () {
                   if (!this.scope?.register) return
 
@@ -85,7 +85,7 @@ export class ChatStreamPlugin extends Plugin {
                         created.startEditing()
                      }
                   })
-                  
+
                   // Shift+Cmd+Enter to create GPT note
                   this.scope.register(['Shift', 'Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
                      evt.preventDefault()
@@ -137,7 +137,7 @@ export class ChatStreamPlugin extends Plugin {
                   })
                   return next.call(this)
                }
-            }
+            })
          })
 
          this.register(canvasViewUninstall)
@@ -148,14 +148,14 @@ export class ChatStreamPlugin extends Plugin {
          return true
       }
 
-      this.app.workspace.onLayoutReady(() => {
+      this.app.workspace.onLayoutReady(trapError(() => {
          if (!patchCanvas()) {
             const evt = app.workspace.on("layout-change", () => {
                patchCanvas() && app.workspace.offref(evt)
             })
             this.registerEvent(evt)
          }
-      })
+      }))
    }
 
    async loadSettings() {
@@ -272,15 +272,13 @@ const createNode = (
 
    const { text } = nodeOptions
    const width = nodeOptions?.size?.width || Math.max(minWidth, parentNode?.width)
-   const height = nodeOptions?.size?.height 
+   const height = nodeOptions?.size?.height
       || Math.max(minHeight, (parentNode && calcHeight({ text, parentHeight: parentNode.height })))
-      
+
    const siblings = parent && canvas.getEdgesForNode(parentNode)
       .filter(n => n.from.node.id == parentNode.id)
       .map(e => e.to.node)
    const siblingsRight = siblings && siblings.reduce((right, sib) => Math.max(right, sib.x + sib.width), 0)
-
-   console.log({siblings: siblings, siblingsRight: siblingsRight, })////
 
    const newNode = canvas.createTextNode(
       {

@@ -23,3 +23,21 @@ export const addEdge = (canvas: Canvas, edgeID: string, fromEdge: CanvasEdge, to
 
 	canvas.requestFrame()
 }
+
+// export async function trapErrorAsync<T>(fn: () => Promise<T>) {
+// 	try {
+// 		return () => fn()
+// 	} catch (e) {
+// 		console.error(e)
+// 	}
+// }
+
+export function trapError<T>(fn: (...params: any[]) => T) {
+	return (...params: any[]) => {
+		try {
+			return fn(...params)
+		} catch (e) {
+			console.error(e)
+		}
+	}
+}
