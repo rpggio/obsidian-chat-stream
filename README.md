@@ -2,6 +2,8 @@
 
 An Obsidian plugin for conversing with GPT AI via canvas notes. Ancestor notes/files are included in the chat context.
 
+<img src="static/chat-stream-usage-haiku.gif"/>
+
 ## Install
 
 ### From BRAT
@@ -16,8 +18,8 @@ folder `{{obsidian_vault}}/.obsidian/plugins/rpggio/obsidian-chat-stream`.
 ## Usage
 
 1. Select a note in the canvas
-2. Press Command-Enter (Mac), or Win-Enter (Windows)
+2. Press Shift+Command+Enter (Mac), or Shift+Win+Enter (Windows)
 3. OpenAI chat AI will respond in a child note, using ancestors for context
-4. Press Command-Enter on an AI note to easily begin a response
+4. Press Command+Enter to quickly create a normal text note
 
 AI notes are colored purple, and tagged with `chat_role=assistant` in the canvas data file.

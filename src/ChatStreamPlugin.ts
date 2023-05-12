@@ -248,7 +248,7 @@ async function appendFile(path: string, content: string) {
    }
 }
 
-const minWidth = 450
+const minWidth = 350
 const pxPerChar = 5
 const pxPerLine = 28
 const assistantColor = "6"
