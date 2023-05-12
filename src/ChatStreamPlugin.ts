@@ -85,7 +85,7 @@ export class ChatStreamPlugin extends Plugin {
                         created.startEditing()
                      }
                   })
-
+                  
                   // Shift+Cmd+Enter to create GPT note
                   this.scope.register(['Shift', 'Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
                      evt.preventDefault()
@@ -102,9 +102,6 @@ export class ChatStreamPlugin extends Plugin {
                         // Last typed characters might not be applied to note yet
                         await canvas.requestSave()
                         await sleep(200)
-
-                        const parents = canvas.getEdgesForNode(node)
-                           .map((e: any) => e.from.node)
 
                         const messages = await buildMessages(node, canvas, settings)
                         if (!messages.length) return
@@ -256,6 +253,7 @@ const pxPerChar = 5
 const pxPerLine = 28
 const assistantColor = "6"
 const newNoteMargin = 64
+const minHeight = 64
 
 const calcHeight = (options: { parentHeight: number, text: string }) => {
    const calcTextHeight = Math.round(12 + pxPerLine * options.text.length / (minWidth / pxPerChar))
@@ -268,18 +266,26 @@ const createNode = (
    nodeOptions: CreateNodeOptions,
    nodeData?: Partial<AllCanvasNodeData>
 ) => {
-   if (!canvas || !parentNode) {
+   if (!canvas) {
       throw new Error('Invalid arguments')
    }
 
    const { text } = nodeOptions
-   const width = nodeOptions?.size?.width || Math.max(minWidth, parentNode.width)
-   const height = nodeOptions?.size?.height || calcHeight({ text, parentHeight: parentNode.height })
+   const width = nodeOptions?.size?.width || Math.max(minWidth, parentNode?.width)
+   const height = nodeOptions?.size?.height 
+      || Math.max(minHeight, (parentNode && calcHeight({ text, parentHeight: parentNode.height })))
+      
+   const siblings = parent && canvas.getEdgesForNode(parentNode)
+      .filter(n => n.from.node.id == parentNode.id)
+      .map(e => e.to.node)
+   const siblingsRight = siblings && siblings.reduce((right, sib) => Math.max(right, sib.x + sib.width), 0)
+
+   console.log({siblings: siblings, siblingsRight: siblingsRight, })////
 
    const newNode = canvas.createTextNode(
       {
          pos: {
-            x: parentNode.x,
+            x: siblingsRight ? siblingsRight + newNoteMargin : parentNode.x,
             y: parentNode.y + parentNode.height + height * 0.5 + newNoteMargin
          },
          position: 'left',
