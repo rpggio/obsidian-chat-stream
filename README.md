@@ -23,3 +23,9 @@ folder `{{obsidian_vault}}/.obsidian/plugins/rpggio/obsidian-chat-stream`.
 4. Press Command+Enter to quickly create a normal text note
 
 AI notes are colored purple, and tagged with `chat_role=assistant` in the canvas data file.
+
+## Say thanks
+
+If you love it you can send me a [coffee thumbs-up](https://bmc.link/ryanp) so I know folks find it useful.
+
+<a href="https://bmc.link/ryanp"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=&button_colour=6495ED&font_colour=ffffff&font_family=Lato&outline_colour=000000&coffee_colour=FFDD00"></a>

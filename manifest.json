@@ -6,5 +6,8 @@
 	"description": "Create branching GPT chats using Obsidian canvas",
 	"author": "Ryan P Smith",
 	"authorUrl": "https://mi.digital",
-	"isDesktopOnly": false
+	"isDesktopOnly": false,
+	"fundingUrl": {
+		"Buy Me a Coffee": "https://bmc.link/ryanp"
+	}
 }
