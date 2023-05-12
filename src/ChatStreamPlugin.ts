@@ -44,7 +44,7 @@ export class ChatStreamPlugin extends Plugin {
 
    patchCanvas() {
       const settings = this.settings
-      const logDebug = settings.debug ? console.debug : () => {}
+      const logDebug = settings.debug ? console.debug : () => { }
 
       const patchCanvas = () => {
          const canvasView = app.workspace.getActiveViewOfType(ItemView)
@@ -62,6 +62,7 @@ export class ChatStreamPlugin extends Plugin {
                return async function () {
                   if (!this.scope?.register) return
 
+                  // Cmd+Enter to create user note
                   this.scope.register(['Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
                      evt.preventDefault()
 
@@ -74,54 +75,67 @@ export class ChatStreamPlugin extends Plugin {
                      const node = values[0]
 
                      if (node) {
-                        if (node.getData().chat_role === 'assistant') {
-                           const created = createNode(canvas, node, { text: '', size: { height: 100 } })
-                           canvas.selectOnly(created, true /* startEditing */)
+                        const created = createNode(canvas, node, { text: '', size: { height: 100 } })
+                        canvas.selectOnly(created, true /* startEditing */)
 
-                           // startEditing() doesn't work if called immediately
-                           await canvas.requestSave()
-                           await sleep(0)
+                        // startEditing() doesn't work if called immediately
+                        await canvas.requestSave()
+                        await sleep(0)
 
-                           created.startEditing()
-                        } else {
-                           // Last typed characters might not be applied to note yet
-                           await canvas.requestSave()
-                           await sleep(200)
+                        created.startEditing()
+                     }
+                  })
 
-                           const parents = canvas.getEdgesForNode(node)
-                              .map((e: any) => e.from.node)
+                  // Shift+Cmd+Enter to create GPT note
+                  this.scope.register(['Shift', 'Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
+                     evt.preventDefault()
 
-                           const messages = await buildMessages(node, canvas, settings)
-                           if (!messages.length) return
+                     const canvas: Canvas = this.canvas
+                     await canvas.requestFrame()
 
-                           logDebug('Messages for chat API', messages)
+                     const selection = canvas.selection
+                     if (selection?.size !== 1) return
+                     const values = Array.from(selection.values()) as CanvasNode[]
+                     const node = values[0]
 
-                           const created = createNode(canvas, node,
-                              {
-                                 text: `Calling GPT (${settings.apiModel})...`,
-                                 size: { height: 60 }
-                              },
-                              {
-                                 color: assistantColor,
-                                 chat_role: 'assistant'
-                              })
+                     if (node) {
+                        // Last typed characters might not be applied to note yet
+                        await canvas.requestSave()
+                        await sleep(200)
 
-                           try {
-                              const generated = await getChatGPTCompletion(
-                                 settings.apiKey,
-                                 settings.apiModel,
-                                 messages
-                              )
-                              created.setText(generated)
-                              const height = calcHeight({ text: generated, parentHeight: node.height })
-                              created.moveAndResize({ height, width: created.width, x: created.x, y: created.y })
-                              canvas.selectOnly(created, false /* startEditing */)
-                           } catch {
-                              canvas.removeNode(created)
-                           }
+                        const parents = canvas.getEdgesForNode(node)
+                           .map((e: any) => e.from.node)
 
-                           await canvas.requestSave()
+                        const messages = await buildMessages(node, canvas, settings)
+                        if (!messages.length) return
+
+                        logDebug('Messages for chat API', messages)
+
+                        const created = createNode(canvas, node,
+                           {
+                              text: `Calling GPT (${settings.apiModel})...`,
+                              size: { height: 60 }
+                           },
+                           {
+                              color: assistantColor,
+                              chat_role: 'assistant'
+                           })
+
+                        try {
+                           const generated = await getChatGPTCompletion(
+                              settings.apiKey,
+                              settings.apiModel,
+                              messages
+                           )
+                           created.setText(generated)
+                           const height = calcHeight({ text: generated, parentHeight: node.height })
+                           created.moveAndResize({ height, width: created.width, x: created.x, y: created.y })
+                           canvas.selectOnly(created, false /* startEditing */)
+                        } catch {
+                           canvas.removeNode(created)
                         }
+
+                        await canvas.requestSave()
                      }
                   })
                   return next.call(this)
@@ -261,7 +275,7 @@ const createNode = (
    const { text } = nodeOptions
    const width = nodeOptions?.size?.width || Math.max(minWidth, parentNode.width)
    const height = nodeOptions?.size?.height || calcHeight({ text, parentHeight: parentNode.height })
- 
+
    const newNode = canvas.createTextNode(
       {
          pos: {
