@@ -1,6 +1,6 @@
 import { ChatGPTModelType } from 'src/openai/chatGPT'
 
-export interface TTSettings {
+export interface ChatStreamSettings {
    apiKey: string
    apiModel: string
    systemPrompt: string
@@ -17,7 +17,7 @@ When formatting lists, use bulleted lists (markdown dash character), not numbere
 Use step-by-step reasoning. Be brief.
 `.trim()
 
-export const DEFAULT_SETTINGS: TTSettings = {
+export const DEFAULT_SETTINGS: ChatStreamSettings = {
    apiKey: '',
    apiModel: ChatGPTModelType.GPT35.toString(),
    systemPrompt: DEFAULT_SYSTEM_PROMPT,

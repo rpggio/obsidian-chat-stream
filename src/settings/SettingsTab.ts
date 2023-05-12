@@ -1,11 +1,11 @@
 import { App, PluginSettingTab, Setting } from "obsidian"
-import { TTCanvasPlugin } from 'src/TTCanvasPlugin'
-import { getModels } from './TTSettings'
+import { ChatStreamPlugin } from 'src/ChatStreamPlugin'
+import { getModels } from './ChatStreamSettings'
 
 export class SettingsTab extends PluginSettingTab {
-  plugin: TTCanvasPlugin
+  plugin: ChatStreamPlugin
 
-  constructor(app: App, plugin: TTCanvasPlugin) {
+  constructor(app: App, plugin: ChatStreamPlugin) {
     super(app, plugin)
     this.plugin = plugin
   }

@@ -5,9 +5,9 @@ import { Canvas, CanvasNode, CreateNodeOptions } from './obsidian/canvas-interna
 import { addEdge } from './obsidian/obsidian-utils'
 import { getChatGPTCompletion } from './openai/chatGPT'
 import { openai } from './openai/chatGPT-types'
+import { ChatStreamSettings, DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT } from './settings/ChatStreamSettings'
 import SettingsTab from './settings/SettingsTab'
-import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, TTSettings } from './settings/TTSettings'
-import { random } from './utils'
+import { randomHexString } from './utils'
 
 export interface CanvasNodeDataBase {
    id: string
@@ -26,8 +26,8 @@ export interface CanvasFileData extends CanvasNodeDataBase {
 
 export type CanvasNodeData = CanvasFileData | CanvasNoteData
 
-export class TTCanvasPlugin extends Plugin {
-   settings: TTSettings
+export class ChatStreamPlugin extends Plugin {
+   settings: ChatStreamSettings
 
    async onload() {
       if (!requireApiVersion("1.1.10")) {
@@ -160,7 +160,7 @@ export class TTCanvasPlugin extends Plugin {
    }
 }
 
-async function buildMessages(node: CanvasNode, canvas: Canvas, settings: TTSettings) {
+async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStreamSettings) {
    const messages: openai.ChatCompletionRequestMessage[] = []
    const lengthLimit = 5000
    let totalLength = 0
@@ -282,7 +282,7 @@ const createNode = (
    canvas.deselectAll()
    canvas.addNode(newNode)
 
-   addEdge(canvas, random(16), {
+   addEdge(canvas, randomHexString(16), {
       fromOrTo: "from",
       side: "bottom",
       node: parentNode,

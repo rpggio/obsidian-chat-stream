@@ -1,4 +1,4 @@
 
-import { TTCanvasPlugin } from './TTCanvasPlugin'
+import { ChatStreamPlugin } from './ChatStreamPlugin'
 
-export default TTCanvasPlugin
+export default ChatStreamPlugin
