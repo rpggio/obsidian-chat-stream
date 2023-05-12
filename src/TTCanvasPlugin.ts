@@ -6,7 +6,7 @@ import { addEdge } from './obsidian/obsidian-utils'
 import { getChatGPTCompletion } from './openai/chatGPT'
 import { openai } from './openai/chatGPT-types'
 import SettingsTab from './settings/SettingsTab'
-import { DEFAULT_SETTINGS, TTSettings } from './settings/TTSettings'
+import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT, TTSettings } from './settings/TTSettings'
 import { random } from './utils'
 
 export interface CanvasNodeDataBase {
@@ -44,6 +44,7 @@ export class TTCanvasPlugin extends Plugin {
 
    patchCanvas() {
       const settings = this.settings
+      const logDebug = settings.debug ? console.debug : () => {}
 
       const patchCanvas = () => {
          const canvasView = app.workspace.getActiveViewOfType(ItemView)
@@ -72,8 +73,6 @@ export class TTCanvasPlugin extends Plugin {
                      const values = Array.from(selection.values()) as CanvasNode[]
                      const node = values[0]
 
-                     // console.debug({ canvas, node, parents, edges: canvas.edges }) ///
-
                      if (node) {
                         if (node.getData().chat_role === 'assistant') {
                            const created = createNode(canvas, node, { text: '', size: { height: 100 } })
@@ -92,10 +91,10 @@ export class TTCanvasPlugin extends Plugin {
                            const parents = canvas.getEdgesForNode(node)
                               .map((e: any) => e.from.node)
 
-                           const messages = await buildMessages(node, canvas)
+                           const messages = await buildMessages(node, canvas, settings)
                            if (!messages.length) return
 
-                           console.debug(messages)
+                           logDebug('Messages for chat API', messages)
 
                            const created = createNode(canvas, node,
                               {
@@ -161,17 +160,7 @@ export class TTCanvasPlugin extends Plugin {
    }
 }
 
-const systemPrompt =
-   `You are a sound-boarding and critical analysis bot. 
-Think about the unstated intent behind the requests I provide.
-Do not take my requests literally. Evaluate the best approach before responding.
-Do not restate my information unless I ask for it. 
-Do not include caveats or disclaimers.
-When formatting lists, use bulleted lists (dash character), not numbered lists.
-Use step-by-step reasoning. Be brief.
-`
-
-async function buildMessages(node: CanvasNode, canvas: Canvas) {
+async function buildMessages(node: CanvasNode, canvas: Canvas, settings: TTSettings) {
    const messages: openai.ChatCompletionRequestMessage[] = []
    const lengthLimit = 5000
    let totalLength = 0
@@ -206,7 +195,7 @@ async function buildMessages(node: CanvasNode, canvas: Canvas) {
    if (!messages.length) return []
 
    messages.unshift({
-      content: systemPrompt,
+      content: settings.systemPrompt || DEFAULT_SYSTEM_PROMPT,
       role: 'system'
    })
 

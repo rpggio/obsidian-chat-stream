@@ -32,7 +32,7 @@ export class SettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Model')
-      .setDesc('This allows you to choose which model the chat view should utilize..')
+      .setDesc('Select the GPT model to use.')
       .addDropdown((cb) => {
         getModels().forEach((model) => {
           cb.addOption(model, model)
@@ -43,6 +43,34 @@ export class SettingsTab extends PluginSettingTab {
           await this.plugin.saveSettings()
         })
       })
+
+      new Setting(containerEl)
+      .setName('System Prompt')
+      .setDesc('The system prompt sent with each request to the API.')
+      .addTextArea((component) => {
+        component.inputEl.rows = 6
+        component.inputEl.style.width = '300px'
+        component.inputEl.style.fontSize = '10px'
+        component.setValue(this.plugin.settings.systemPrompt)
+        component.onChange(async (value) => {
+          this.plugin.settings.systemPrompt = value
+          await this.plugin.saveSettings()
+        })
+      })
+
+    new Setting(containerEl)
+      .setName("Debug output")
+      .setDesc(
+        "Enable debug output in the console"
+      )
+      .addToggle(component => {
+        component.setValue(this.plugin.settings.debug)
+        .onChange(async (value) => {
+          this.plugin.settings.debug = value
+          await this.plugin.saveSettings()
+        })
+      })
+
   }
 }
 
