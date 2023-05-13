@@ -15,6 +15,17 @@ export class SettingsTab extends PluginSettingTab {
 
     containerEl.empty()
 
+		containerEl.createEl("h3", {
+			text: "Usage",
+		});
+    containerEl.createEl("p", {
+			text: "Press Shift+Cmd+Enter to invoke GPT. Press Cmd+Enter to create an empty note.",
+		});
+
+    containerEl.createEl("h3", {
+			text: "Settings",
+		});
+
     new Setting(containerEl)
       .setName("API Key")
       .setDesc(
