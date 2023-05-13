@@ -9,6 +9,7 @@ An Obsidian plugin for conversing with GPT AI via canvas notes. Ancestor notes/f
 ### From BRAT
 
 Add `rpggio/obsidian-chat-stream` to BRAT.
+Note: you may need to re-open canvas documents after installation.
 
 ### Download Manually
 
