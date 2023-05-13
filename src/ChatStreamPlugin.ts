@@ -9,22 +9,13 @@ import { ChatStreamSettings, DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT } from './s
 import SettingsTab from './settings/SettingsTab'
 import { randomHexString } from './utils'
 
-export interface CanvasNodeDataBase {
-   id: string
-}
-
-export interface CanvasNoteData extends CanvasNodeDataBase {
-   type: 'note'
-   text: string
-   setText(text: string): void
-}
-
-export interface CanvasFileData extends CanvasNodeDataBase {
-   type: 'file'
-   file: string
-}
-
-export type CanvasNodeData = CanvasFileData | CanvasNoteData
+const minWidth = 350
+const pxPerChar = 5
+const pxPerLine = 28
+// 6 == purple
+const assistantColor = "6"
+const newNoteMargin = 64
+const minHeight = 64
 
 export class ChatStreamPlugin extends Plugin {
    settings: ChatStreamSettings
@@ -174,6 +165,7 @@ export class ChatStreamPlugin extends Plugin {
 async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStreamSettings) {
    const messages: openai.ChatCompletionRequestMessage[] = []
    const lengthLimit = 5000
+   const ancestorVisitDepth = 5
    let totalLength = 0
 
    const visit = async (node: CanvasNode, depth: number) => {
@@ -188,7 +180,7 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
 
       messages.unshift({
          content: nodeText,
-         role: nodeData.chat_role || 'user'
+         role: nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
       })
 
       const parents = canvas.getEdgesForNode(node)
@@ -200,8 +192,7 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
       }
    }
 
-   // Visit the node + 3 ancestor levels
-   await visit(node, 6)
+   await visit(node, ancestorVisitDepth + 1)
 
    if (!messages.length) return []
 
@@ -247,13 +238,6 @@ async function appendFile(path: string, content: string) {
       return this.app.vault.append(file, content)
    }
 }
-
-const minWidth = 350
-const pxPerChar = 5
-const pxPerLine = 28
-const assistantColor = "6"
-const newNoteMargin = 64
-const minHeight = 64
 
 const calcHeight = (options: { parentHeight: number, text: string }) => {
    const calcTextHeight = Math.round(12 + pxPerLine * options.text.length / (minWidth / pxPerChar))
