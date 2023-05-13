@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-chat-stream",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Create branching GPT chats using Obsidian canvas",
 	"main": "src/main.js",
 	"scripts": {
