@@ -70,7 +70,7 @@ export interface Canvas {
 export interface CreateNodeOptions {
    text: string,
    pos?: { x: number, y: number } 
-   position?: 'left' | 'right',
+   position?: 'left' | 'right' | 'top' | 'bottom',
    size?: { height?: number, width?: number },
    focus?: boolean
 }

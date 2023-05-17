@@ -279,13 +279,21 @@ const createNode = (
       .filter(n => n.from.node.id == parentNode.id)
       .map(e => e.to.node)
    const siblingsRight = siblings && siblings.reduce((right, sib) => Math.max(right, sib.x + sib.width), 0)
+   const priorSibling = siblings[siblings.length - 1]
+
+   // Position left at right of prior sibling, otherwise aligned with parent
+   const x = siblingsRight ? siblingsRight + newNoteMargin : parentNode.x
+
+   // Position top at prior sibling top, otherwise offset below parent
+   const y = (priorSibling
+      ? priorSibling.y
+      : (parentNode.y + parentNode.height + newNoteMargin))
+      // Using position=left, y value is treated as vertical center
+      + height * 0.5
 
    const newNode = canvas.createTextNode(
       {
-         pos: {
-            x: siblingsRight ? siblingsRight + newNoteMargin : parentNode.x,
-            y: parentNode.y + parentNode.height + height * 0.5 + newNoteMargin
-         },
+         pos: { x, y },
          position: 'left',
          size: { height, width },
          text,
