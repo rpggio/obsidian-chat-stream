@@ -1,5 +1,5 @@
 import { around } from "monkey-around"
-import { ItemView, KeymapContext, Plugin, TFile, requireApiVersion } from 'obsidian'
+import { ItemView, KeymapContext, Notice, Plugin, TFile, requireApiVersion } from 'obsidian'
 import { AllCanvasNodeData } from 'obsidian/canvas'
 import { Canvas, CanvasNode, CreateNodeOptions } from './obsidian/canvas-internal'
 import { addEdge, trapError } from './obsidian/obsidian-utils'
@@ -18,6 +18,7 @@ const newNoteMargin = 60
 const minHeight = 60
 
 export class ChatStreamPlugin extends Plugin {
+   unloaded = false
    settings: ChatStreamSettings
 
    async onload() {
@@ -31,7 +32,9 @@ export class ChatStreamPlugin extends Plugin {
       this.patchCanvas()
    }
 
-   onunload() { }
+   onunload() { 
+      this.unloaded = true
+   }
 
    patchCanvas() {
       const settings = this.settings
@@ -43,18 +46,14 @@ export class ChatStreamPlugin extends Plugin {
          if (!canvasView) return false
 
          const canvasViewUninstall = around(canvasView.constructor.prototype, {
-            createTextNode: trapError((next) => {
-               return function (...args: any[]) {
-                  return next.call(this, ...args)
-               }
-            }),
-
             onOpen: trapError((next) => {
                return async function () {
                   if (!this.scope?.register) return
 
                   // Cmd+Enter to create user note
                   this.scope.register(['Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
+                     if (this.unloaded) return
+
                      evt.preventDefault()
 
                      logDebug("Creating user note")
@@ -81,6 +80,8 @@ export class ChatStreamPlugin extends Plugin {
 
                   // Shift+Cmd+Enter to create GPT note
                   this.scope.register(['Shift', 'Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
+                     if (this.unloaded) return
+                     
                      evt.preventDefault()
 
                      logDebug("Creating AI note")
@@ -112,6 +113,8 @@ export class ChatStreamPlugin extends Plugin {
                               color: assistantColor,
                               chat_role: 'assistant'
                            })
+
+                        new Notice(`Sending ${messages.length} notes to GPT`)
 
                         try {
                            const generated = await getChatGPTCompletion(
@@ -227,16 +230,6 @@ async function getNodeText(node: CanvasNode) {
          return nodeData.text
       case 'file':
          return readFile(nodeData.file)
-   }
-}
-
-async function appendText(node: CanvasNode, text: string) {
-   const nodeData = node.getData()
-   switch (nodeData.type) {
-      case 'text':
-         return node.setText(node.text + text)
-      case 'file':
-         return appendFile(nodeData.file, text)
    }
 }
 
