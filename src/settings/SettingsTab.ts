@@ -15,16 +15,16 @@ export class SettingsTab extends PluginSettingTab {
 
     containerEl.empty()
 
-		containerEl.createEl("h3", {
-			text: "Usage",
-		});
+    containerEl.createEl("h3", {
+      text: "Usage",
+    })
     containerEl.createEl("p", {
-			text: "Press Shift+Cmd+Enter to invoke GPT. Press Cmd+Enter to create an empty note.",
-		});
+      text: "Press Shift+Cmd+Enter to invoke GPT. Press Cmd+Enter to create an empty note.",
+    })
 
     containerEl.createEl("h3", {
-			text: "Settings",
-		});
+      text: "Settings",
+    })
 
     new Setting(containerEl)
       .setName("API Key")
@@ -55,7 +55,7 @@ export class SettingsTab extends PluginSettingTab {
         })
       })
 
-      new Setting(containerEl)
+    new Setting(containerEl)
       .setName('System Prompt')
       .setDesc('The system prompt sent with each request to the API.')
       .addTextArea((component) => {
@@ -70,16 +70,46 @@ export class SettingsTab extends PluginSettingTab {
       })
 
     new Setting(containerEl)
+      .setName('Max Input Characters')
+      .setDesc('The maximum number of characters to send to the API (includes system prompt).')
+      .addText((text) =>
+        text
+          .setValue(this.plugin.settings.maxInputCharacters.toString())
+          .onChange(async (value) => {
+            const parsed = parseInt(value)
+            if (!isNaN(parsed) && parsed > 0) {
+              this.plugin.settings.maxInputCharacters = parsed
+              await this.plugin.saveSettings()
+            }
+          })
+      )
+
+    new Setting(containerEl)
+      .setName('Max Response Tokens')
+      .setDesc('The maximum number of _tokens_ to return from the API. 0 means no limit. (A token is about 4 characters).')
+      .addText((text) =>
+        text
+          .setValue(this.plugin.settings.maxResponseTokens.toString())
+          .onChange(async (value) => {
+            const parsed = parseInt(value)
+            if (!isNaN(parsed)) {
+              this.plugin.settings.maxResponseTokens = parsed
+              await this.plugin.saveSettings()
+            }
+          })
+      )
+
+    new Setting(containerEl)
       .setName("Debug output")
       .setDesc(
         "Enable debug output in the console"
       )
       .addToggle(component => {
         component.setValue(this.plugin.settings.debug)
-        .onChange(async (value) => {
-          this.plugin.settings.debug = value
-          await this.plugin.saveSettings()
-        })
+          .onChange(async (value) => {
+            this.plugin.settings.debug = value
+            await this.plugin.saveSettings()
+          })
       })
 
   }

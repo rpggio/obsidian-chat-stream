@@ -32,13 +32,15 @@ export class ChatStreamPlugin extends Plugin {
       this.patchCanvas()
    }
 
-   onunload() { 
+   onunload() {
       this.unloaded = true
    }
 
    patchCanvas() {
       const settings = this.settings
-      const logDebug = settings.debug ? console.debug : () => { }
+      const logDebug = settings.debug
+         ? (message?: any, ...optionalParams: any[]) => console.debug('Chat Stream: ' + message, optionalParams)
+         : () => { }
 
       const patchCanvas = () => {
          const canvasView = app.workspace.getActiveViewOfType(ItemView)
@@ -81,7 +83,7 @@ export class ChatStreamPlugin extends Plugin {
                   // Shift+Cmd+Enter to create GPT note
                   this.scope.register(['Shift', 'Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
                      if (this.unloaded) return
-                     
+
                      evt.preventDefault()
 
                      logDebug("Creating AI note")
@@ -120,7 +122,10 @@ export class ChatStreamPlugin extends Plugin {
                            const generated = await getChatGPTCompletion(
                               settings.apiKey,
                               settings.apiModel,
-                              messages
+                              messages,
+                              {
+                                 max_tokens: settings.maxResponseTokens || undefined,
+                              }
                            )
                            created.setText(generated)
                            const height = calcHeight({ text: generated, parentHeight: node.height })
@@ -171,7 +176,6 @@ export class ChatStreamPlugin extends Plugin {
 
 async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStreamSettings, logDebug: (...args: any[]) => void) {
    const messages: openai.ChatCompletionRequestMessage[] = []
-   const lengthLimit = 5000
    const ancestorVisitDepth = 5
    let totalLength = 0
 
@@ -180,15 +184,17 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
 
       const nodeData = node.getData()
       let nodeText = await getNodeText(node) || ''
+      const lengthLimit = settings.maxInputCharacters || DEFAULT_SETTINGS.maxInputCharacters
 
       if (nodeText.trim()) {
          let textLength = nodeText.length
          if (totalLength + textLength > lengthLimit) {
-            // truncate
-            nodeText = nodeText.slice(0, lengthLimit - totalLength)
-            textLength = nodeText.length
+            const truncatedLength = lengthLimit - totalLength
+            logDebug(`Truncating node text from ${nodeText.length} to ${truncatedLength} characters`)
 
-            logDebug(`Chat Stream: Truncated node text from ${nodeText.length} to ${textLength} characters`)
+            // truncate beginning of text
+            nodeText = nodeText.slice(nodeText.length - truncatedLength)
+            textLength = truncatedLength
          }
          totalLength += textLength
 

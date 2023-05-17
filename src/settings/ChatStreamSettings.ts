@@ -5,6 +5,8 @@ export interface ChatStreamSettings {
    apiModel: string
    systemPrompt: string
    debug: boolean
+   maxInputCharacters: number
+   maxResponseTokens: number
 }
 
 export const DEFAULT_SYSTEM_PROMPT =
@@ -21,7 +23,9 @@ export const DEFAULT_SETTINGS: ChatStreamSettings = {
    apiKey: '',
    apiModel: ChatGPTModelType.GPT35.toString(),
    systemPrompt: DEFAULT_SYSTEM_PROMPT,
-   debug: false
+   debug: false,
+   maxInputCharacters: 5000,
+   maxResponseTokens: 0
 }
 
 export function getModels() {

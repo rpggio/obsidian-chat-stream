@@ -6,24 +6,6 @@ export enum ChatGPTModelType {
    GPT4 = "gpt-4",
 }
 
-// export type ChatRole = "user" | "system" | "assistant"
-
-// export interface ChatMessage {
-//    role: ChatRole
-//    content: string
-// }
-
-// export interface ChatGPTSettings {
-//    modelType: ChatGPTModelType
-//    systemMessage: string
-//    maxTokens: number
-//    temperature: number
-//    topP: number
-//    presencePenalty: number
-//    frequencyPenalty: number
-//    stop: string[]
-// }
-
 export const defaultChatGPTSettings: Partial<openai.CreateChatCompletionRequest> = {
    model: ChatGPTModelType.GPT35.toString(),
    max_tokens: 500,
