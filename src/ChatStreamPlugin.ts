@@ -9,13 +9,13 @@ import { ChatStreamSettings, DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT } from './s
 import SettingsTab from './settings/SettingsTab'
 import { randomHexString } from './utils'
 
-const minWidth = 350
+const minWidth = 360
 const pxPerChar = 5
 const pxPerLine = 28
 // 6 == purple
 const assistantColor = "6"
-const newNoteMargin = 64
-const minHeight = 64
+const newNoteMargin = 60
+const minHeight = 60
 
 export class ChatStreamPlugin extends Plugin {
    settings: ChatStreamSettings
@@ -57,6 +57,8 @@ export class ChatStreamPlugin extends Plugin {
                   this.scope.register(['Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
                      evt.preventDefault()
 
+                     logDebug("Creating user note")
+
                      const canvas: Canvas = this.canvas
                      await canvas.requestFrame()
 
@@ -81,6 +83,8 @@ export class ChatStreamPlugin extends Plugin {
                   this.scope.register(['Shift', 'Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
                      evt.preventDefault()
 
+                     logDebug("Creating AI note")
+
                      const canvas: Canvas = this.canvas
                      await canvas.requestFrame()
 
@@ -94,7 +98,7 @@ export class ChatStreamPlugin extends Plugin {
                         await canvas.requestSave()
                         await sleep(200)
 
-                        const messages = await buildMessages(node, canvas, settings)
+                        const messages = await buildMessages(node, canvas, settings, logDebug)
                         if (!messages.length) return
 
                         logDebug('Messages for chat API', messages)
@@ -162,7 +166,7 @@ export class ChatStreamPlugin extends Plugin {
    }
 }
 
-async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStreamSettings) {
+async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStreamSettings, logDebug: (...args: any[]) => void) {
    const messages: openai.ChatCompletionRequestMessage[] = []
    const lengthLimit = 5000
    const ancestorVisitDepth = 5
@@ -172,16 +176,28 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
       if (depth <= 0) return
 
       const nodeData = node.getData()
-      const nodeText = await getNodeText(node) || ''
+      let nodeText = await getNodeText(node) || ''
 
-      const textLength = nodeText.length
-      if (totalLength + textLength > lengthLimit) return
-      totalLength += textLength
+      if (nodeText.trim()) {
+         let textLength = nodeText.length
+         if (totalLength + textLength > lengthLimit) {
+            // truncate
+            nodeText = nodeText.slice(0, lengthLimit - totalLength)
+            textLength = nodeText.length
 
-      messages.unshift({
-         content: nodeText,
-         role: nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
-      })
+            logDebug(`Chat Stream: Truncated node text from ${nodeText.length} to ${textLength} characters`)
+         }
+         totalLength += textLength
+
+         messages.unshift({
+            content: nodeText,
+            role: nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
+         })
+      }
+
+      if (totalLength >= lengthLimit) {
+         return
+      }
 
       const parents = canvas.getEdgesForNode(node)
          .filter(edge => edge.to.node.id === node.id)
