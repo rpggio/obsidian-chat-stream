@@ -19,6 +19,10 @@ Chat Stream is supported only on desktop.
 
 AI notes are colored purple, and tagged with `chat_role=assistant` in the canvas data file.
 
+## Attribution
+
+* Canvas plugin code from [Canvas MindMap](https://github.com/Quorafind/Obsidian-Canvas-MindMap)
+
 ## Say thanks
 
 If you love it you can send me a [coffee thumbs-up](https://bmc.link/ryanp) so I know folks find it useful.
