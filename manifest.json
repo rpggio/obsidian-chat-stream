@@ -1,7 +1,7 @@
 {
 	"id": "chat-stream",
 	"name": "Chat Stream",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"minAppVersion": "1.1.10",
 	"description": "Create branching GPT chats using Obsidian canvas",
 	"author": "Ryan P Smith",
