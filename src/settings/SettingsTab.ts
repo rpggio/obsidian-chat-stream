@@ -27,6 +27,20 @@ export class SettingsTab extends PluginSettingTab {
     })
 
     new Setting(containerEl)
+      .setName('Model')
+      .setDesc('Select the GPT model to use.')
+      .addDropdown((cb) => {
+        getModels().forEach((model) => {
+          cb.addOption(model, model)
+        })
+        cb.setValue(this.plugin.settings.apiModel)
+        cb.onChange(async (value) => {
+          this.plugin.settings.apiModel = value
+          await this.plugin.saveSettings()
+        })
+      })
+
+    new Setting(containerEl)
       .setName("API Key")
       .setDesc(
         "The API key to use when making requests - Get from OpenAI"
@@ -40,20 +54,6 @@ export class SettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings()
           })
       )
-
-    new Setting(containerEl)
-      .setName('Model')
-      .setDesc('Select the GPT model to use.')
-      .addDropdown((cb) => {
-        getModels().forEach((model) => {
-          cb.addOption(model, model)
-        })
-        cb.setValue(this.plugin.settings.apiModel)
-        cb.onChange(async (value) => {
-          this.plugin.settings.apiModel = value
-          await this.plugin.saveSettings()
-        })
-      })
 
     new Setting(containerEl)
       .setName('System Prompt')
