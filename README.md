@@ -1,4 +1,4 @@
-# Obsidian Chat Stream
+# Chat Stream
 
 An Obsidian plugin for conversing with GPT AI via canvas notes. Ancestor notes/files are included in the chat context. You can quickly create chat streams, and control what other notes are sent to the AI.
 
@@ -9,6 +9,10 @@ An Obsidian plugin for conversing with GPT AI via canvas notes. Ancestor notes/f
 Add `rpggio/obsidian-chat-stream` to [BRAT](https://github.com/TfTHacker/obsidian42-brat).
 
 Chat Stream is supported only on desktop.
+
+## Setup
+
+Add an [OpenAI API key](https://platform.openai.com/account/api-keys) in Chat Stream settings.
 
 ## Usage
 
