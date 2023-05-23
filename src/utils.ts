@@ -6,5 +6,3 @@ export const randomHexString = (len: number) => {
 	}
 	return t.join("")
 }
-
-export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
