@@ -99,6 +99,22 @@ export class SettingsTab extends PluginSettingTab {
           })
       )
 
+
+      new Setting(containerEl)
+      .setName('Max Depth')
+      .setDesc('The maximum depth of ancestor notes to include. 0 means no limit.')
+      .addText((text) =>
+        text
+          .setValue(this.plugin.settings.maxDepth.toString())
+          .onChange(async (value) => {
+            const parsed = parseInt(value)
+            if (!isNaN(parsed)) {
+              this.plugin.settings.maxDepth = parsed
+              await this.plugin.saveSettings()
+            }
+          })
+      )
+
     new Setting(containerEl)
       .setName("Debug output")
       .setDesc(

@@ -176,11 +176,11 @@ export class ChatStreamPlugin extends Plugin {
 
 async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStreamSettings, logDebug: (...args: any[]) => void) {
    const messages: openai.ChatCompletionRequestMessage[] = []
-   const ancestorVisitDepth = 5
+   
    let totalLength = 0
 
    const visit = async (node: CanvasNode, depth: number) => {
-      if (depth <= 0) return
+      if (settings.maxDepth && depth > settings.maxDepth) return
 
       const nodeData = node.getData()
       let nodeText = await getNodeText(node) || ''
@@ -213,11 +213,11 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
          .map(edge => edge.from.node)
 
       for (const parent of parents) {
-         await visit(parent, depth - 1)
+         await visit(parent, depth + 1)
       }
    }
 
-   await visit(node, ancestorVisitDepth + 1)
+   await visit(node, 0)
 
    if (!messages.length) return []
 
