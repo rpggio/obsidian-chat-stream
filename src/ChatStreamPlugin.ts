@@ -1,5 +1,5 @@
 import { around } from "monkey-around"
-import { ItemView, KeymapContext, Notice, Plugin, TFile, requireApiVersion } from 'obsidian'
+import { ItemView, KeymapContext, Notice, Plugin, TFile } from 'obsidian'
 import { AllCanvasNodeData } from 'obsidian/canvas'
 import { Canvas, CanvasNode, CreateNodeOptions } from './obsidian/canvas-internal'
 import { addEdge, trapError } from './obsidian/obsidian-utils'
@@ -22,11 +22,6 @@ export class ChatStreamPlugin extends Plugin {
    settings: ChatStreamSettings
 
    async onload() {
-      if (!requireApiVersion("1.1.10")) {
-         console.error('Chat Stream requires Obsidian 1.1.10 or higher')
-         return
-      }
-
       await this.loadSettings()
       this.addSettingTab(new SettingsTab(this.app, this))
       this.patchCanvas()

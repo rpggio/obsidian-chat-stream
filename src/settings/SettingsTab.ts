@@ -15,15 +15,8 @@ export class SettingsTab extends PluginSettingTab {
 
     containerEl.empty()
 
-    containerEl.createEl("h3", {
-      text: "Usage",
-    })
     containerEl.createEl("p", {
-      text: "Press Shift+Cmd+Enter to invoke GPT. Press Cmd+Enter to create an empty note.",
-    })
-
-    containerEl.createEl("h3", {
-      text: "Settings",
+      text: "Usage: Press Shift+Cmd+Enter to invoke GPT. Press Cmd+Enter to create an empty note.",
     })
 
     new Setting(containerEl)
@@ -41,7 +34,7 @@ export class SettingsTab extends PluginSettingTab {
       })
 
     new Setting(containerEl)
-      .setName("API Key")
+      .setName("API key")
       .setDesc(
         "The API key to use when making requests - Get from OpenAI"
       )
@@ -56,7 +49,7 @@ export class SettingsTab extends PluginSettingTab {
       )
 
     new Setting(containerEl)
-      .setName('System Prompt')
+      .setName('System prompt')
       .setDesc('The system prompt sent with each request to the API.')
       .addTextArea((component) => {
         component.inputEl.rows = 6
@@ -70,7 +63,7 @@ export class SettingsTab extends PluginSettingTab {
       })
 
     new Setting(containerEl)
-      .setName('Max Input Characters')
+      .setName('Max input characters')
       .setDesc('The maximum number of characters to send to the API (includes system prompt).')
       .addText((text) =>
         text
@@ -85,7 +78,7 @@ export class SettingsTab extends PluginSettingTab {
       )
 
     new Setting(containerEl)
-      .setName('Max Response Tokens')
+      .setName('Max pesponse tokens')
       .setDesc('The maximum number of _tokens_ to return from the API. 0 means no limit. (A token is about 4 characters).')
       .addText((text) =>
         text
@@ -101,7 +94,7 @@ export class SettingsTab extends PluginSettingTab {
 
 
       new Setting(containerEl)
-      .setName('Max Depth')
+      .setName('Max depth')
       .setDesc('The maximum depth of ancestor notes to include. 0 means no limit.')
       .addText((text) =>
         text
