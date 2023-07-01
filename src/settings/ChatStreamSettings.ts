@@ -1,4 +1,4 @@
-import { ChatGPTModelType } from 'src/openai/chatGPT'
+import { CHAT_MODELS } from 'src/openai/chatGPT'
 
 export interface ChatStreamSettings {
    /**
@@ -49,7 +49,7 @@ Use step-by-step reasoning. Be brief.
 
 export const DEFAULT_SETTINGS: ChatStreamSettings = {
    apiKey: '',
-   apiModel: ChatGPTModelType.GPT35.toString(),
+   apiModel: CHAT_MODELS.GPT35.name,
    systemPrompt: DEFAULT_SYSTEM_PROMPT,
    debug: false,
    maxInputCharacters: 5000,
@@ -58,5 +58,5 @@ export const DEFAULT_SETTINGS: ChatStreamSettings = {
 }
 
 export function getModels() {
-   return Object.values(ChatGPTModelType)
+   return Object.entries(CHAT_MODELS).map(([, value]) => value.name)
 }

@@ -1,15 +1,29 @@
 import { request, RequestUrlParam } from "obsidian"
 import { openai } from './chatGPT-types'
 
-export enum ChatGPTModelType {
-   GPT35 = "gpt-3.5-turbo",
-   GPT4 = "gpt-4",
+export const CHAT_MODELS = {
+   GPT35: {
+      name: 'gpt-3.5-turbo',
+      tokenLimit: 4096,
+   },
+   GPT4: {
+      name: 'gpt-4',
+      tokenLimit: 8000,
+   },
+}
+
+export type ChatGPTModel = typeof CHAT_MODELS.GPT35 | typeof CHAT_MODELS.GPT4
+
+export type ChatGPTModelType = keyof typeof CHAT_MODELS
+
+export function chatModelByName(name: string) {
+   return Object.values(CHAT_MODELS).find(model => model.name === name)
 }
 
 export const defaultChatGPTSettings: Partial<openai.CreateChatCompletionRequest> = {
-   model: ChatGPTModelType.GPT35.toString(),
+   model: CHAT_MODELS.GPT35.name,
    max_tokens: 500,
-   temperature: 1.0,
+   temperature: 0,
    top_p: 1.0,
    presence_penalty: 0,
    frequency_penalty: 0,

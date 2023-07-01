@@ -131,7 +131,8 @@ export class ChatStreamPlugin extends Plugin {
                            const height = calcHeight({ text: generated, parentHeight: node.height })
                            created.moveAndResize({ height, width: created.width, x: created.x, y: created.y })
                            canvas.selectOnly(created, false /* startEditing */)
-                        } catch {
+                        } catch (error) {
+                           new Notice(`Error calling GPT: ${error.message || error}`)
                            canvas.removeNode(created)
                         }
 
@@ -176,11 +177,13 @@ export class ChatStreamPlugin extends Plugin {
 
 async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStreamSettings, logDebug: (...args: any[]) => void) {
    const messages: openai.ChatCompletionRequestMessage[] = []
-   
+
    let totalLength = 0
 
    const visit = async (node: CanvasNode, depth: number) => {
       if (settings.maxDepth && depth > settings.maxDepth) return
+
+      // TODO: vary max input chars by model type: 4 chars per token
 
       const nodeData = node.getData()
       let nodeText = await getNodeText(node) || ''
@@ -198,9 +201,15 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
          }
          totalLength += textLength
 
+         let role: openai.ChatCompletionRequestMessageRoleEnum = nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
+         if (depth === 0 && nodeText.startsWith('SYSTEM PROMPT')) {
+            nodeText = nodeText.slice('SYSTEM PROMPT'.length).trim()
+            role = 'system'
+         }
+
          messages.unshift({
             content: nodeText,
-            role: nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
+            role
          })
       }
 
@@ -221,10 +230,12 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
 
    if (!messages.length) return []
 
-   messages.unshift({
-      content: settings.systemPrompt || DEFAULT_SYSTEM_PROMPT,
-      role: 'system'
-   })
+   if (messages[0].role !== 'system') { 
+      messages.unshift({
+         content: settings.systemPrompt || DEFAULT_SYSTEM_PROMPT,
+         role: 'system'
+      })
+   }
 
    return messages
 }
