@@ -189,6 +189,10 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
       let nodeText = await getNodeText(node) || ''
       const lengthLimit = settings.maxInputCharacters || DEFAULT_SETTINGS.maxInputCharacters
 
+      const parents = canvas.getEdgesForNode(node)
+         .filter(edge => edge.to.node.id === node.id)
+         .map(edge => edge.from.node)
+
       if (nodeText.trim()) {
          let textLength = nodeText.length
          if (totalLength + textLength > lengthLimit) {
@@ -202,7 +206,7 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
          totalLength += textLength
 
          let role: openai.ChatCompletionRequestMessageRoleEnum = nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
-         if (depth === 0 && nodeText.startsWith('SYSTEM PROMPT')) {
+         if (parents.length === 0 && nodeText.startsWith('SYSTEM PROMPT')) {
             nodeText = nodeText.slice('SYSTEM PROMPT'.length).trim()
             role = 'system'
          }
@@ -217,10 +221,6 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
          return
       }
 
-      const parents = canvas.getEdgesForNode(node)
-         .filter(edge => edge.to.node.id === node.id)
-         .map(edge => edge.from.node)
-
       for (const parent of parents) {
          await visit(parent, depth + 1)
       }
@@ -230,7 +230,7 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
 
    if (!messages.length) return []
 
-   if (messages[0].role !== 'system') { 
+   if (messages[0].role !== 'system') {
       messages.unshift({
          content: settings.systemPrompt || DEFAULT_SYSTEM_PROMPT,
          role: 'system'

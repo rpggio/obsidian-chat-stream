@@ -6,10 +6,18 @@ export const CHAT_MODELS = {
       name: 'gpt-3.5-turbo',
       tokenLimit: 4096,
    },
+   GPT35_16K: {
+      name: 'gpt-3.5-turbo-16k',
+      tokenLimit: 16384,
+   },
    GPT4: {
       name: 'gpt-4',
       tokenLimit: 8000,
    },
+   GPT4_32K: {
+      name: 'gpt-4-32k',
+      tokenLimit: 32768
+   }
 }
 
 export type ChatGPTModel = typeof CHAT_MODELS.GPT35 | typeof CHAT_MODELS.GPT4
