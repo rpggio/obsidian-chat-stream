@@ -1,8 +1,7 @@
-import { around } from "monkey-around"
-import { ItemView, KeymapContext, Notice, Plugin, TFile } from 'obsidian'
+import { ItemView, Notice, Plugin, TFile } from 'obsidian'
 import { AllCanvasNodeData } from 'obsidian/canvas'
 import { Canvas, CanvasNode, CreateNodeOptions } from './obsidian/canvas-internal'
-import { addEdge, trapError } from './obsidian/obsidian-utils'
+import { addEdge } from './obsidian/obsidian-utils'
 import { getChatGPTCompletion } from './openai/chatGPT'
 import { openai } from './openai/chatGPT-types'
 import { ChatStreamSettings, DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT } from './settings/ChatStreamSettings'
@@ -20,141 +19,160 @@ const minHeight = 60
 export class ChatStreamPlugin extends Plugin {
    unloaded = false
    settings: ChatStreamSettings
+   logDebug: (...args: any[]) => void = () => { }
 
    async onload() {
       await this.loadSettings()
+
+      this.logDebug = this.settings.debug
+         ? (message?: any, ...optionalParams: any[]) => console.debug('Chat Stream: ' + message, ...optionalParams)
+         : () => { }
+
       this.addSettingTab(new SettingsTab(this.app, this))
-      this.patchCanvas()
+
+      this.addCommand({
+         id: 'next-note',
+         name: 'Create next note',
+         callback: () => {
+            this.nextNote()
+         },
+         hotkeys: [
+            {
+               modifiers: ['Alt', 'Shift'],
+               key: "N",
+            },
+         ],
+      })
+
+      this.addCommand({
+         id: 'ai-note',
+         name: 'Generate AI note',
+         callback: () => {
+            this.generateNote()
+         },
+         hotkeys: [
+            {
+               modifiers: ['Alt', 'Shift'],
+               key: "G",
+            },
+         ],
+      })
+
    }
 
    onunload() {
       this.unloaded = true
    }
 
-   patchCanvas() {
-      const settings = this.settings
-      const logDebug = settings.debug
-         ? (message?: any, ...optionalParams: any[]) => console.debug('Chat Stream: ' + message, optionalParams)
-         : () => { }
+   async nextNote() {
+      if (this.unloaded) return
 
-      const patchCanvas = () => {
-         const canvasView = app.workspace.getActiveViewOfType(ItemView)
-         // const canvasView = app.workspace.getLeavesOfType("canvas").first()?.view
-         if (!canvasView) return false
+      this.logDebug("Creating user note")
 
-         const canvasViewUninstall = around(canvasView.constructor.prototype, {
-            onOpen: trapError((next) => {
-               return async function () {
-                  if (!this.scope?.register) return
-
-                  // Cmd+Enter to create user note
-                  this.scope.register(['Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
-                     if (this.unloaded) return
-
-                     evt.preventDefault()
-
-                     logDebug("Creating user note")
-
-                     const canvas: Canvas = this.canvas
-                     await canvas.requestFrame()
-
-                     const selection = canvas.selection
-                     if (selection?.size !== 1) return
-                     const values = Array.from(selection.values()) as CanvasNode[]
-                     const node = values[0]
-
-                     if (node) {
-                        const created = createNode(canvas, node, { text: '', size: { height: 100 } })
-                        canvas.selectOnly(created, true /* startEditing */)
-
-                        // startEditing() doesn't work if called immediately
-                        await canvas.requestSave()
-                        await sleep(0)
-
-                        created.startEditing()
-                     }
-                  })
-
-                  // Shift+Cmd+Enter to create GPT note
-                  this.scope.register(['Shift', 'Meta'], "Enter", async (evt: KeyboardEvent, ctx: KeymapContext) => {
-                     if (this.unloaded) return
-
-                     evt.preventDefault()
-
-                     logDebug("Creating AI note")
-
-                     const canvas: Canvas = this.canvas
-                     await canvas.requestFrame()
-
-                     const selection = canvas.selection
-                     if (selection?.size !== 1) return
-                     const values = Array.from(selection.values()) as CanvasNode[]
-                     const node = values[0]
-
-                     if (node) {
-                        // Last typed characters might not be applied to note yet
-                        await canvas.requestSave()
-                        await sleep(200)
-
-                        const messages = await buildMessages(node, canvas, settings, logDebug)
-                        if (!messages.length) return
-
-                        logDebug('Messages for chat API', messages)
-
-                        const created = createNode(canvas, node,
-                           {
-                              text: `Calling GPT (${settings.apiModel})...`,
-                              size: { height: 60 }
-                           },
-                           {
-                              color: assistantColor,
-                              chat_role: 'assistant'
-                           })
-
-                        new Notice(`Sending ${messages.length} notes to GPT`)
-
-                        try {
-                           const generated = await getChatGPTCompletion(
-                              settings.apiKey,
-                              settings.apiModel,
-                              messages,
-                              {
-                                 max_tokens: settings.maxResponseTokens || undefined,
-                              }
-                           )
-                           created.setText(generated)
-                           const height = calcHeight({ text: generated, parentHeight: node.height })
-                           created.moveAndResize({ height, width: created.width, x: created.x, y: created.y })
-                           canvas.selectOnly(created, false /* startEditing */)
-                        } catch (error) {
-                           new Notice(`Error calling GPT: ${error.message || error}`)
-                           canvas.removeNode(created)
-                        }
-
-                        await canvas.requestSave()
-                     }
-                  })
-                  return next.call(this)
-               }
-            })
-         })
-
-         this.register(canvasViewUninstall)
-
-         const leaf = canvasView.leaf as any
-         leaf.rebuildView()
-         console.log("Chat Stream: canvas view patched")
-         return true
+      const canvas = this.getActiveCanvas()
+      if (!canvas) {
+         this.logDebug('No active canvas')
+         return
       }
 
-      this.app.workspace.onLayoutReady(trapError(() => {
-         if (!patchCanvas()) {
-            const evt = app.workspace.on("layout-change", () => {
-               patchCanvas() && app.workspace.offref(evt)
+      await canvas.requestFrame()
+
+      const selection = canvas.selection
+      if (selection?.size !== 1) return
+      const values = Array.from(selection.values()) as CanvasNode[]
+      const node = values[0]
+
+      if (node) {
+         const created = createNode(canvas, node, { text: '', size: { height: 100 } })
+         canvas.selectOnly(created, true /* startEditing */)
+
+         // startEditing() doesn't work if called immediately
+         await canvas.requestSave()
+         await sleep(0)
+
+         created.startEditing()
+      }
+   }
+
+   async generateNote() {
+      if (this.unloaded) return
+
+      if (!this.canCallAI()) return
+
+      this.logDebug("Creating AI note")
+
+      const canvas = this.getActiveCanvas()
+      if (!canvas) {
+         this.logDebug('No active canvas')
+         return
+      }
+
+      await canvas.requestFrame()
+
+      const selection = canvas.selection
+      if (selection?.size !== 1) return
+      const values = Array.from(selection.values()) as CanvasNode[]
+      const node = values[0]
+
+      if (node) {
+         // Last typed characters might not be applied to note yet
+         await canvas.requestSave()
+         await sleep(200)
+
+         const settings = this.settings
+         const messages = await buildMessages(node, canvas, settings, this.logDebug)
+         if (!messages.length) return
+
+         this.logDebug('Messages for chat API', messages)
+
+         const created = createNode(canvas, node,
+            {
+               text: `Calling GPT (${settings.apiModel})...`,
+               size: { height: 60 }
+            },
+            {
+               color: assistantColor,
+               chat_role: 'assistant'
             })
-            this.registerEvent(evt)
+
+         new Notice(`Sending ${messages.length} notes to GPT`)
+
+         try {
+            const generated = await getChatGPTCompletion(
+               settings.apiKey,
+               settings.apiModel,
+               messages,
+               {
+                  max_tokens: settings.maxResponseTokens || undefined,
+               }
+            )
+            created.setText(generated)
+            const height = calcHeight({ text: generated, parentHeight: node.height })
+            created.moveAndResize({ height, width: created.width, x: created.x, y: created.y })
+            canvas.selectOnly(created, false /* startEditing */)
+         } catch (error) {
+            new Notice(`Error calling GPT: ${error.message || error}`)
+            canvas.removeNode(created)
          }
-      }))
+
+         await canvas.requestSave()
+      }
+   }
+
+   getActiveCanvas(): any {
+      // const maybeCanvasView = this.app.workspace.getLeaf().view
+      // console.log({maybeCanvasView, leaf: this.app.workspace.getLeaf()})///
+      const maybeCanvasView = app.workspace.getActiveViewOfType(ItemView)
+      return maybeCanvasView ? (maybeCanvasView as any)['canvas'] : null
+   }
+
+   canCallAI() {
+      if (!this.settings.apiKey) {
+         new Notice('Please set your OpenAI API key in the plugin settings')
+         return false
+      }
+
+      return true
    }
 
    async loadSettings() {

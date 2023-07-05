@@ -15,10 +15,6 @@ export class SettingsTab extends PluginSettingTab {
 
     containerEl.empty()
 
-    containerEl.createEl("p", {
-      text: "Usage: Press Shift+Cmd+Enter to invoke GPT. Press Cmd+Enter to create an empty note.",
-    })
-
     new Setting(containerEl)
       .setName('Model')
       .setDesc('Select the GPT model to use.')
@@ -92,8 +88,7 @@ export class SettingsTab extends PluginSettingTab {
           })
       )
 
-
-      new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Max depth')
       .setDesc('The maximum depth of ancestor notes to include. 0 means no limit.')
       .addText((text) =>

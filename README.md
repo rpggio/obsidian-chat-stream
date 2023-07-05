@@ -17,9 +17,8 @@ Add an [OpenAI API key](https://platform.openai.com/account/api-keys) in Chat St
 ## Usage
 
 1. Select a note in the canvas
-2. Press Shift+Command+Enter to send current note and ancestors to GPT
-3. GPT chat will respond in a child note
-4. To quickly create an empty child note for responding, press Command+Enter.
+2. Press Alt+Shift+G to generate new note from GPT using current note + ancestors
+3. To create next note for responding, press Alt+Shift+N.
 
 AI notes are colored purple, and tagged with `chat_role=assistant` in the canvas data file.
 
