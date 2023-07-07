@@ -45,7 +45,7 @@ export class ChatStreamPlugin extends Plugin {
       })
 
       this.addCommand({
-         id: 'ai-note',
+         id: 'generate-note',
          name: 'Generate AI note',
          callback: () => {
             this.generateNote()
@@ -160,8 +160,6 @@ export class ChatStreamPlugin extends Plugin {
    }
 
    getActiveCanvas(): any {
-      // const maybeCanvasView = this.app.workspace.getLeaf().view
-      // console.log({maybeCanvasView, leaf: this.app.workspace.getLeaf()})///
       const maybeCanvasView = app.workspace.getActiveViewOfType(ItemView)
       return maybeCanvasView ? (maybeCanvasView as any)['canvas'] : null
    }
