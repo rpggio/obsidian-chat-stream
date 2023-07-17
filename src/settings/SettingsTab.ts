@@ -74,7 +74,7 @@ export class SettingsTab extends PluginSettingTab {
       )
 
     new Setting(containerEl)
-      .setName('Max pesponse tokens')
+      .setName('Max response tokens')
       .setDesc('The maximum number of _tokens_ to return from the API. 0 means no limit. (A token is about 4 characters).')
       .addText((text) =>
         text
