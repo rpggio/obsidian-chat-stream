@@ -1,7 +1,7 @@
 import { ItemView, Notice, Plugin, TFile } from 'obsidian'
 import { AllCanvasNodeData } from 'obsidian/canvas'
 import { Canvas, CanvasNode, CreateNodeOptions } from './obsidian/canvas-internal'
-import { addEdge } from './obsidian/obsidian-utils'
+import { CanvasView, addEdge } from './obsidian/obsidian-utils'
 import { getChatGPTCompletion } from './openai/chatGPT'
 import { openai } from './openai/chatGPT-types'
 import { ChatStreamSettings, DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT } from './settings/ChatStreamSettings'
@@ -19,13 +19,13 @@ const minHeight = 60
 export class ChatStreamPlugin extends Plugin {
    unloaded = false
    settings: ChatStreamSettings
-   logDebug: (...args: any[]) => void = () => { }
+   logDebug: (...args: unknown[]) => void = () => { }
 
    async onload() {
       await this.loadSettings()
 
       this.logDebug = this.settings.debug
-         ? (message?: any, ...optionalParams: any[]) => console.debug('Chat Stream: ' + message, ...optionalParams)
+         ? (message?: unknown, ...optionalParams: unknown[]) => console.debug('Chat Stream: ' + message, ...optionalParams)
          : () => { }
 
       this.addSettingTab(new SettingsTab(this.app, this))
@@ -159,9 +159,9 @@ export class ChatStreamPlugin extends Plugin {
       }
    }
 
-   getActiveCanvas(): any {
-      const maybeCanvasView = app.workspace.getActiveViewOfType(ItemView)
-      return maybeCanvasView ? (maybeCanvasView as any)['canvas'] : null
+   getActiveCanvas() {
+      const maybeCanvasView = app.workspace.getActiveViewOfType(ItemView) as CanvasView | null
+      return maybeCanvasView ? maybeCanvasView['canvas'] : null
    }
 
    canCallAI() {
@@ -186,7 +186,7 @@ export class ChatStreamPlugin extends Plugin {
    }
 }
 
-async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStreamSettings, logDebug: (...args: any[]) => void) {
+async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStreamSettings, logDebug: (...args: unknown[]) => void) {
    const messages: openai.ChatCompletionRequestMessage[] = []
 
    let totalLength = 0
@@ -266,13 +266,6 @@ async function readFile(path: string) {
    if (file instanceof TFile) {
       const body = await app.vault.read(file)
       return `## ${file.basename}\n${body}`
-   }
-}
-
-async function appendFile(path: string, content: string) {
-   const file = this.app.vault.getAbstractFileByPath(path)
-   if (file instanceof TFile) {
-      return this.app.vault.append(file, content)
    }
 }
 

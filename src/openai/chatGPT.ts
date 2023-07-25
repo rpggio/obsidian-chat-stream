@@ -43,7 +43,7 @@ export async function getChatGPTCompletion(
 	model: openai.CreateChatCompletionRequest['model'],
 	messages: openai.CreateChatCompletionRequest['messages'],
 	settings?: Partial<Omit<openai.CreateChatCompletionRequest, 'messages' | 'model'>>
-): Promise<string> {
+): Promise<string | undefined> {
 	const apiUrl = `https://api.openai.com/v1/chat/completions`
 	const headers = {
 		Authorization: `Bearer ${apiKey}`,
@@ -62,7 +62,7 @@ export async function getChatGPTCompletion(
 		headers,
 	}
 	console.debug('Calling openAI', requestParam)
-	const res: any = await request(requestParam)
+	const res: openai.CreateChatCompletionResponse | undefined = await request(requestParam)
 		.then((response) => {
 			return JSON.parse(response)
 		})
@@ -71,4 +71,3 @@ export async function getChatGPTCompletion(
 		})
 	return res?.choices?.[0]?.message?.content
 }
-
