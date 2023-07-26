@@ -26,17 +26,22 @@ AI notes are colored purple, and tagged with `chat_role=assistant` in the canvas
 
 ## Development
 
-1. Install and enable [hot reload plugin](https://github.com/pjeby/hot-reload)
-2. Create symbolic link from this project dir to an Obsidian store 
+1. Download source and install dependencies
+   ```
+	pnpm install
+	```
+2. In Obsidian, install and enable [hot reload plugin](https://github.com/pjeby/hot-reload)
+3. Create symbolic link from this project dir to an Obsidian store 
    ```
 	ln -s . your-obsidian-store/.obsidian/plugins/chat-stream
 	```
-3. Start dev server
+4. Start dev server
 	```
 	pnpm run dev
 	```
+5. In Obsidian, enable Chat Stream Plugin and add OpenAI key in plugin settings.
 
-Code changes should automatically be loaded into Obsidian.
+Changes to code should automatically be loaded into Obsidian.
 
 ## Attribution
 
