@@ -24,6 +24,20 @@ Add an [OpenAI API key](https://platform.openai.com/account/api-keys) in Chat St
 
 AI notes are colored purple, and tagged with `chat_role=assistant` in the canvas data file.
 
+## Development
+
+1. Install and enable [hot reload plugin](https://github.com/pjeby/hot-reload)
+2. Create symbolic link from this project dir to an Obsidian store 
+   ```
+	ln -s . your-obsidian-store/.obsidian/plugins/chat-stream
+	```
+3. Start dev server
+	```
+	pnpm run dev
+	```
+
+Code changes should automatically be loaded into Obsidian.
+
 ## Attribution
 
 * Canvas plugin code from [Canvas MindMap](https://github.com/Quorafind/Obsidian-Canvas-MindMap)
