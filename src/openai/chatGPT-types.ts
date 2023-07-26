@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
+
 /**
  * @see https://raw.githubusercontent.com/transitive-bullshit/chatgpt-api/main/src/types.ts
  * @see https://beta.openai.com/docs/api-reference/completions/create

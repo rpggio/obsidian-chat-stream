@@ -1,4 +1,7 @@
 
+/**
+ * Generate a string of random hexadecimal chars
+ */
 export const randomHexString = (len: number) => {
 	const t = []
 	for (let n = 0; n < len; n++) {

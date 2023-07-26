@@ -8,14 +8,55 @@ import { ChatStreamSettings, DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT } from './s
 import SettingsTab from './settings/SettingsTab'
 import { randomHexString } from './utils'
 
+/**
+ * Minimum width for new notes
+ */
 const minWidth = 360
+
+/**
+ * Assumed pixel width per character
+ */
 const pxPerChar = 5
+
+/** 
+ * Assumed pixel height per line
+ */
 const pxPerLine = 28
-// 6 == purple
+
+/**
+ * Assumed height of top + bottom text area padding
+ */
+const textPaddingHeight = 12
+
+/**
+ * Color for assistant notes: 6 == purple
+ */
 const assistantColor = "6"
+
+/**
+ * Margin between new notes
+ */
 const newNoteMargin = 60
+
+/** 
+ * Min height of new notes
+ */
 const minHeight = 60
 
+/**
+ * Height to use for new empty note
+ */
+const emptyNoteHeight = 100
+
+/**
+ * Height to use for placeholder note
+ */
+const placeholderNoteHeight = 60
+
+/**
+ * Obsidian plugin implementation.
+ * Note: Canvas has no supported API. This plugin uses internal APIs that may change without notice.
+ */
 export class ChatStreamPlugin extends Plugin {
    unloaded = false
    settings: ChatStreamSettings
@@ -83,7 +124,7 @@ export class ChatStreamPlugin extends Plugin {
       const node = values[0]
 
       if (node) {
-         const created = createNode(canvas, node, { text: '', size: { height: 100 } })
+         const created = createNode(canvas, node, { text: '', size: { height: emptyNoteHeight } })
          canvas.selectOnly(created, true /* startEditing */)
 
          // startEditing() doesn't work if called immediately
@@ -128,7 +169,7 @@ export class ChatStreamPlugin extends Plugin {
          const created = createNode(canvas, node,
             {
                text: `Calling GPT (${settings.apiModel})...`,
-               size: { height: 60 }
+               size: { height: placeholderNoteHeight }
             },
             {
                color: assistantColor,
@@ -146,6 +187,12 @@ export class ChatStreamPlugin extends Plugin {
                   max_tokens: settings.maxResponseTokens || undefined,
                }
             )
+				
+				if (generated == null) {
+					new Notice(`Empty or unreadable response from GPT`)
+					return
+				}
+
             created.setText(generated)
             const height = calcHeight({ text: generated, parentHeight: node.height })
             created.moveAndResize({ height, width: created.width, x: created.x, y: created.y })
@@ -194,7 +241,7 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
    const visit = async (node: CanvasNode, depth: number) => {
       if (settings.maxDepth && depth > settings.maxDepth) return
 
-      // TODO: vary max input chars by model type: 4 chars per token
+      // TODO: calculate max input chars by model type
 
       const nodeData = node.getData()
       let nodeText = await getNodeText(node) || ''
@@ -237,6 +284,7 @@ async function buildMessages(node: CanvasNode, canvas: Canvas, settings: ChatStr
       }
    }
 
+	// Visit node and ancestors
    await visit(node, 0)
 
    if (!messages.length) return []
@@ -269,11 +317,20 @@ async function readFile(path: string) {
    }
 }
 
+/**
+ * Choose height for generated note based on text length and parent height.
+ * For notes beyond a few lines, the note will have scroll bar.
+ * Not a precise science, just something that is not surprising.
+ */
 const calcHeight = (options: { parentHeight: number, text: string }) => {
-   const calcTextHeight = Math.round(12 + pxPerLine * options.text.length / (minWidth / pxPerChar))
+   const calcTextHeight = Math.round(textPaddingHeight + pxPerLine * options.text.length / (minWidth / pxPerChar))
    return Math.max(options.parentHeight, calcTextHeight)
 }
 
+/**
+ * Create new node as descendant from the parent node.
+ * Align and offset relative to siblings.
+ */
 const createNode = (
    canvas: Canvas,
    parentNode: CanvasNode,

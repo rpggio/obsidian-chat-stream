@@ -15,6 +15,9 @@ export type CanvasView = ItemView & {
 	canvas: Canvas
 }
 
+/**
+ * Add edge entry to canvas.
+ */
 export const addEdge = (canvas: Canvas, edgeID: string, fromEdge: CanvasEdge, toEdge: CanvasEdge) => {
 	if (!canvas) return
 
@@ -33,6 +36,9 @@ export const addEdge = (canvas: Canvas, edgeID: string, fromEdge: CanvasEdge, to
 	canvas.requestFrame()
 }
 
+/**
+ * Trap exception and write to console.error.
+ */
 export function trapError<T>(fn: (...params: unknown[]) => T) {
 	return (...params: unknown[]) => {
 		try {
