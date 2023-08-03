@@ -152,7 +152,7 @@ export class ChatStreamPlugin extends Plugin {
 
       const selection = canvas.selection
       if (selection?.size !== 1) return
-      const values = Array.from(selection.values()) as CanvasNode[]
+      const values = Array.from(selection.values())
       const node = values[0]
 
       if (node) {
@@ -190,13 +190,22 @@ export class ChatStreamPlugin extends Plugin {
 				
 				if (generated == null) {
 					new Notice(`Empty or unreadable response from GPT`)
+					canvas.removeNode(created)
 					return
 				}
 
             created.setText(generated)
             const height = calcHeight({ text: generated, parentHeight: node.height })
             created.moveAndResize({ height, width: created.width, x: created.x, y: created.y })
-            canvas.selectOnly(created, false /* startEditing */)
+            
+				const selectedNoteId = canvas.selection?.size === 1
+					? Array.from(canvas.selection.values())?.[0]?.id
+					: undefined
+
+				if (selectedNoteId === node?.id || selectedNoteId == null) {
+					// If the user has not changed selection, select the created node
+					canvas.selectOnly(created, false /* startEditing */)
+				}
          } catch (error) {
             new Notice(`Error calling GPT: ${error.message || error}`)
             canvas.removeNode(created)
