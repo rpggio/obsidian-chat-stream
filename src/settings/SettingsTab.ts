@@ -35,13 +35,16 @@ export class SettingsTab extends PluginSettingTab {
 				"The API key to use when making requests - Get from OpenAI"
 			)
 			.addText((text) =>
-				text
-					.setPlaceholder("API Key")
-					.setValue(this.plugin.settings.apiKey)
-					.onChange(async (value) => {
-						this.plugin.settings.apiKey = value
-						await this.plugin.saveSettings()
-					})
+				{
+					text.inputEl.type = "password"
+					text
+						.setPlaceholder("API Key")
+						.setValue(this.plugin.settings.apiKey)
+						.onChange(async (value) => {
+							this.plugin.settings.apiKey = value
+							await this.plugin.saveSettings()
+						})
+				}
 			)
 
 		new Setting(containerEl)
