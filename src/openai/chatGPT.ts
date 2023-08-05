@@ -68,6 +68,9 @@ export async function getChatGPTCompletion(
 		})
 		.catch((err) => {
 			console.error(err)
+			if (err.code === 429) {
+				console.error('OpenAI API rate limit exceeded. If you have free account, your credits may have been consumed or expired.')
+			}
 		})
 	return res?.choices?.[0]?.message?.content
 }
