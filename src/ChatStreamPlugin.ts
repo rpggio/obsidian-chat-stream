@@ -359,11 +359,19 @@ const createNode = (
    const siblings = parent && canvas.getEdgesForNode(parentNode)
       .filter(n => n.from.node.id == parentNode.id)
       .map(e => e.to.node)
-   const siblingsRight = siblings && siblings.reduce((right, sib) => Math.max(right, sib.x + sib.width), 0)
+	
+	// Failsafe leftmost value.
+	const farLeft = parentNode.y - parentNode.width * 5
+   const siblingsRight = siblings?.length 
+		? siblings.reduce(
+		(right, sib) => Math.max(right, sib.x + sib.width), farLeft)
+		: undefined
    const priorSibling = siblings[siblings.length - 1]
 
    // Position left at right of prior sibling, otherwise aligned with parent
-   const x = siblingsRight ? siblingsRight + newNoteMargin : parentNode.x
+   const x = siblingsRight != null
+	? siblingsRight + newNoteMargin 
+	: parentNode.x
 
    // Position top at prior sibling top, otherwise offset below parent
    const y = (priorSibling
