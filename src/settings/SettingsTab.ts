@@ -34,17 +34,16 @@ export class SettingsTab extends PluginSettingTab {
 			.setDesc(
 				"The API key to use when making requests - Get from OpenAI"
 			)
-			.addText((text) =>
-				{
-					text.inputEl.type = "password"
-					text
-						.setPlaceholder("API Key")
-						.setValue(this.plugin.settings.apiKey)
-						.onChange(async (value) => {
-							this.plugin.settings.apiKey = value
-							await this.plugin.saveSettings()
-						})
-				}
+			.addText((text) => {
+				text.inputEl.type = "password"
+				text
+					.setPlaceholder("API Key")
+					.setValue(this.plugin.settings.apiKey)
+					.onChange(async (value) => {
+						this.plugin.settings.apiKey = value
+						await this.plugin.saveSettings()
+					})
+			}
 			)
 
 		new Setting(containerEl)
@@ -101,6 +100,21 @@ export class SettingsTab extends PluginSettingTab {
 						const parsed = parseInt(value)
 						if (!isNaN(parsed)) {
 							this.plugin.settings.maxDepth = parsed
+							await this.plugin.saveSettings()
+						}
+					})
+			)
+
+		new Setting(containerEl)
+			.setName('Temperature')
+			.setDesc('Sampling temperature (0-2). 0 means no randomness.')
+			.addText((text) =>
+				text
+					.setValue(this.plugin.settings.temperature.toString())
+					.onChange(async (value) => {
+						const parsed = parseFloat(value)
+						if (!isNaN(parsed) && parsed >= 0 && parsed <= 2) {
+							this.plugin.settings.temperature = parsed
 							await this.plugin.saveSettings()
 						}
 					})

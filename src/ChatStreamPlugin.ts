@@ -185,6 +185,7 @@ export class ChatStreamPlugin extends Plugin {
                messages,
                {
                   max_tokens: settings.maxResponseTokens || undefined,
+						temperature: settings.temperature
                }
             )
 				

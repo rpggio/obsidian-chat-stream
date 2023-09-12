@@ -12,6 +12,11 @@ export interface ChatStreamSettings {
 	apiModel: string
 
 	/**
+	 * The temperature to use when generating responses (0-2). 0 means no randomness.
+	 */
+	temperature: number
+
+	/**
 	 * The system prompt sent with each request to the API
 	 */
 	systemPrompt: string
@@ -43,13 +48,13 @@ You are a critical-thinking assistant bot.
 Consider the intent of my questions before responding.
 Do not restate my information unless I ask for it. 
 Do not include caveats or disclaimers.
-When formatting lists, use bulleted lists (markdown dash character), not numbered lists.
 Use step-by-step reasoning. Be brief.
 `.trim()
 
 export const DEFAULT_SETTINGS: ChatStreamSettings = {
 	apiKey: '',
 	apiModel: CHAT_MODELS.GPT35.name,
+	temperature: 1,
 	systemPrompt: DEFAULT_SYSTEM_PROMPT,
 	debug: false,
 	maxInputCharacters: 5000,
