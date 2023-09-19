@@ -181,6 +181,7 @@ export class ChatStreamPlugin extends Plugin {
          try {
             const generated = await getChatGPTCompletion(
                settings.apiKey,
+					settings.apiUrl,
                settings.apiModel,
                messages,
                {

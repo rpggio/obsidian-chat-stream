@@ -1,10 +1,15 @@
-import { CHAT_MODELS } from 'src/openai/chatGPT'
+import { CHAT_MODELS, OPENAI_COMPLETIONS_URL } from 'src/openai/chatGPT'
 
 export interface ChatStreamSettings {
 	/**
 	 * The API key to use when making requests
 	 */
 	apiKey: string
+
+	/**
+	 * The URL endpoint for chat
+	 */
+	apiUrl: string
 
 	/**
 	 * The GPT model to use
@@ -53,6 +58,7 @@ Use step-by-step reasoning. Be brief.
 
 export const DEFAULT_SETTINGS: ChatStreamSettings = {
 	apiKey: '',
+	apiUrl: OPENAI_COMPLETIONS_URL,
 	apiModel: CHAT_MODELS.GPT35.name,
 	temperature: 1,
 	systemPrompt: DEFAULT_SYSTEM_PROMPT,

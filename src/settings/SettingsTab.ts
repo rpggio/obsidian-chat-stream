@@ -48,7 +48,7 @@ export class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('System prompt')
-			.setDesc('The system prompt sent with each request to the API.')
+			.setDesc(`The system prompt sent with each request to the API. \n(Note: you can override this by beginning a note stream with a note starting 'SYSTEM PROMPT'. The remaining content of that note will be used as system prompt.)`)
 			.addTextArea((component) => {
 				component.inputEl.rows = 6
 				component.inputEl.style.width = '300px'
@@ -118,6 +118,23 @@ export class SettingsTab extends PluginSettingTab {
 							await this.plugin.saveSettings()
 						}
 					})
+			)
+
+		new Setting(containerEl)
+			.setName("API URL")
+			.setDesc(
+				"The chat completions URL to use. You probably won't need to change this."
+			)
+			.addText((text) => {
+				text.inputEl.style.width = '300px'
+				text
+					.setPlaceholder("API URL")
+					.setValue(this.plugin.settings.apiUrl)
+					.onChange(async (value) => {
+						this.plugin.settings.apiUrl = value
+						await this.plugin.saveSettings()
+					})
+			}
 			)
 
 		new Setting(containerEl)
