@@ -1,5 +1,8 @@
 # vscode
-.vscode 
+.vscode/*
+
+# Exclude everything in the .vscode directory except settings.json
+!.vscode/settings.json
 
 # Intellij
 *.iml

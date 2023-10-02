@@ -38,7 +38,10 @@ export interface CanvasNode {
 }
 
 export interface MoveAndResizeOptions {
-	x?: number, y?: number, width?: number, height?: number
+	x?: number
+	y?: number
+	width?: number
+	height?: number
 }
 
 export interface CanvasEdge {
@@ -60,7 +63,7 @@ export interface Canvas {
 	deselectAll(): void
 	getData(): CanvasData
 	getEdgesForNode(node: CanvasNode): CanvasEdge[]
-	importData(data: { nodes: object[], edges: object[] }): void
+	importData(data: { nodes: object[]; edges: object[] }): void
 	removeNode(node: CanvasNode): void
 	requestFrame(): Promise<void>
 	requestSave(): Promise<void>
@@ -68,9 +71,9 @@ export interface Canvas {
 }
 
 export interface CreateNodeOptions {
-	text: string,
-	pos?: { x: number, y: number }
-	position?: 'left' | 'right' | 'top' | 'bottom',
-	size?: { height?: number, width?: number },
+	text: string
+	pos?: { x: number; y: number }
+	position?: 'left' | 'right' | 'top' | 'bottom'
+	size?: { height?: number; width?: number }
 	focus?: boolean
 }
