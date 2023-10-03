@@ -1,16 +1,13 @@
-import { openai } from './openai/chatGPT-types'
-import { CanvasNode, Canvas } from './obsidian/canvas-internal'
-import { calcHeight, createNode } from './obsidian/canvas-patches'
-import { getChatGPTCompletion } from './openai/chatGPT'
 import { App, ItemView, Notice, TFile } from 'obsidian'
+import { Canvas, CanvasNode } from './obsidian/canvas-internal'
+import { CanvasView, calcHeight, createNode } from './obsidian/canvas-patches'
+import { getChatGPTCompletion } from './openai/chatGPT'
+import { openai } from './openai/chatGPT-types'
 import {
 	ChatStreamSettings,
 	DEFAULT_SETTINGS,
 	DEFAULT_SYSTEM_PROMPT
 } from './settings/ChatStreamSettings'
-import { CanvasView } from './obsidian/canvas-patches'
-import { DQLRetriever, dqlPrefix } from './dql-retriever'
-import { FileRenderer } from './file-renderer'
 
 /**
  * Color for assistant notes: 6 == purple

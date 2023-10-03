@@ -1,7 +1,7 @@
-import { Canvas, CanvasNode, CreateNodeOptions } from './canvas-internal'
-import { randomHexString } from '../utils'
-import { AllCanvasNodeData } from 'obsidian/canvas'
 import { ItemView } from 'obsidian'
+import { AllCanvasNodeData } from 'obsidian/canvas'
+import { randomHexString } from '../utils'
+import { Canvas, CanvasNode, CreateNodeOptions } from './canvas-internal'
 
 export interface CanvasEdgeIntermediate {
 	fromOrTo: string
