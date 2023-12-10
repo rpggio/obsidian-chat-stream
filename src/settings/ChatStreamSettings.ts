@@ -32,12 +32,12 @@ export interface ChatStreamSettings {
 	debug: boolean
 
 	/**
-	 * The maximum number of characters to send to the API (includes system prompt)
+	 * The maximum number of tokens to send (up to model limit). 0 means as many as possible.
 	 */
-	maxInputCharacters: number
+	maxInputTokens: number
 
 	/**
-	 * The maximum number of _tokens_ to return from the API. 0 means no limit. (A token is about 4 characters).
+	 * The maximum number of tokens to return from the API. 0 means no limit. (A token is about 4 characters).
 	 */
 	maxResponseTokens: number
 
@@ -47,8 +47,7 @@ export interface ChatStreamSettings {
 	maxDepth: number
 }
 
-export const DEFAULT_SYSTEM_PROMPT =
-	`
+export const DEFAULT_SYSTEM_PROMPT = `
 You are a critical-thinking assistant bot. 
 Consider the intent of my questions before responding.
 Do not restate my information unless I ask for it. 
@@ -63,7 +62,7 @@ export const DEFAULT_SETTINGS: ChatStreamSettings = {
 	temperature: 1,
 	systemPrompt: DEFAULT_SYSTEM_PROMPT,
 	debug: false,
-	maxInputCharacters: 5000,
+	maxInputTokens: 0,
 	maxResponseTokens: 0,
 	maxDepth: 0
 }

@@ -1,7 +1,12 @@
+import { TiktokenModel, encodingForModel } from 'js-tiktoken'
 import { App, ItemView, Notice, TFile } from 'obsidian'
 import { Canvas, CanvasNode } from './obsidian/canvas-internal'
 import { CanvasView, calcHeight, createNode } from './obsidian/canvas-patches'
-import { getChatGPTCompletion } from './openai/chatGPT'
+import {
+	CHAT_MODELS,
+	chatModelByName,
+	getChatGPTCompletion
+} from './openai/chatGPT'
 import { openai } from './openai/chatGPT-types'
 import {
 	ChatStreamSettings,
@@ -57,7 +62,7 @@ export class AINodeBuilder {
 	async readFile(path: string) {
 		const file = this.app.vault.getAbstractFileByPath(path)
 		if (file instanceof TFile) {
-			const body = await app.vault.read(file)
+			const body = await this.app.vault.read(file)
 			return `## ${file.basename}\n${body}`
 		}
 	}
@@ -96,31 +101,28 @@ export class AINodeBuilder {
 	}
 
 	getActiveCanvas() {
-		const maybeCanvasView = app.workspace.getActiveViewOfType(
+		const maybeCanvasView = this.app.workspace.getActiveViewOfType(
 			ItemView
 		) as CanvasView | null
 		return maybeCanvasView ? maybeCanvasView['canvas'] : null
 	}
 
-	async buildMessages(
-		node: CanvasNode,
-		canvas: Canvas,
-		settings: ChatStreamSettings,
-		logDebug: (...args: unknown[]) => void
-	) {
+	async buildMessages(node: CanvasNode, canvas: Canvas) {
+		const encoding = encodingForModel(
+			(this.settings.apiModel || DEFAULT_SETTINGS.apiModel) as TiktokenModel
+		)
+
 		const messages: openai.ChatCompletionRequestMessage[] = []
 
-		let totalLength = 0
+		let tokenCount = 0
+		let done = false
 
 		const visit = async (node: CanvasNode, depth: number) => {
-			if (settings.maxDepth && depth > settings.maxDepth) return
-
-			// TODO: calculate max input chars by model type
+			if (this.settings.maxDepth && depth > this.settings.maxDepth) return
 
 			const nodeData = node.getData()
 			let nodeText = (await this.getNodeText(node)) || ''
-			const lengthLimit =
-				settings.maxInputCharacters || DEFAULT_SETTINGS.maxInputCharacters
+			const inputLimit = getTokenLimit(this.settings)
 
 			const parents = canvas
 				.getEdgesForNode(node)
@@ -128,19 +130,7 @@ export class AINodeBuilder {
 				.map((edge) => edge.from.node)
 
 			if (nodeText.trim()) {
-				let textLength = nodeText.length
-				if (totalLength + textLength > lengthLimit) {
-					const truncatedLength = lengthLimit - totalLength
-					logDebug(
-						`Truncating node text from ${nodeText.length} to ${truncatedLength} characters`
-					)
-
-					// truncate beginning of text
-					nodeText = nodeText.slice(nodeText.length - truncatedLength)
-					textLength = truncatedLength
-				}
-				totalLength += textLength
-
+				// Handle in-canvas system prompt
 				let role: openai.ChatCompletionRequestMessageRoleEnum =
 					nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
 				if (parents.length === 0 && nodeText.startsWith('SYSTEM PROMPT')) {
@@ -148,13 +138,31 @@ export class AINodeBuilder {
 					role = 'system'
 				}
 
+				let nodeTokenCount = encoding.encode(nodeText).length
+
+				if (tokenCount + nodeTokenCount > inputLimit) {
+					done = true
+					const truncateTo = approximateTextLengthForTokens(
+						inputLimit - tokenCount
+					)
+					this.logDebug(
+						`Truncating node text from ${nodeText.length} to ${truncateTo} characters`
+					)
+
+					// truncate beginning of text
+					nodeText = nodeText.slice(nodeText.length - truncateTo)
+					nodeTokenCount = encoding.encode(nodeText).length
+				}
+
+				tokenCount += nodeTokenCount
+
 				messages.unshift({
 					content: nodeText,
 					role
 				})
 			}
 
-			if (totalLength >= lengthLimit) {
+			if (done) {
 				return
 			}
 
@@ -166,16 +174,16 @@ export class AINodeBuilder {
 		// Visit node and ancestors
 		await visit(node, 0)
 
-		if (!messages.length) return []
+		if (!messages.length) return { messages: [], tokenCount: 0 }
 
 		if (messages[0].role !== 'system') {
 			messages.unshift({
-				content: settings.systemPrompt || DEFAULT_SYSTEM_PROMPT,
+				content: this.settings.systemPrompt || DEFAULT_SYSTEM_PROMPT,
 				role: 'system'
 			})
 		}
 
-		return messages
+		return { messages, tokenCount }
 	}
 
 	async generateNote() {
@@ -204,12 +212,7 @@ export class AINodeBuilder {
 			await sleep(200)
 
 			const settings = this.settings
-			const messages = await this.buildMessages(
-				node,
-				canvas,
-				settings,
-				this.logDebug
-			)
+			const { messages, tokenCount } = await this.buildMessages(node, canvas)
 			if (!messages.length) return
 
 			this.logDebug('Messages for chat API', messages)
@@ -227,7 +230,9 @@ export class AINodeBuilder {
 				}
 			)
 
-			new Notice(`Sending ${messages.length} notes to GPT`)
+			new Notice(
+				`Sending ${messages.length} notes with ${tokenCount} tokens to GPT`
+			)
 
 			try {
 				const generated = await getChatGPTCompletion(
@@ -276,4 +281,15 @@ export class AINodeBuilder {
 			await canvas.requestSave()
 		}
 	}
+}
+
+function approximateTextLengthForTokens(tokenCount: number) {
+	return tokenCount * 3
+}
+
+function getTokenLimit(settings: ChatStreamSettings) {
+	const model = chatModelByName(settings.apiModel) || CHAT_MODELS.GPT35
+	return settings.maxInputTokens
+		? Math.min(settings.maxInputTokens, model.tokenLimit)
+		: model.tokenLimit
 }

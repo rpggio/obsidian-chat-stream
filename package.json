@@ -23,5 +23,8 @@
 		"prettier": "^3.0.3",
 		"tslib": "2.4.0",
 		"typescript": "4.7.4"
+	},
+	"dependencies": {
+		"js-tiktoken": "^1.0.8"
 	}
 }
