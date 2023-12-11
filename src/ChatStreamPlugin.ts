@@ -27,7 +27,9 @@ export class ChatStreamPlugin extends Plugin {
 					console.debug('Chat Stream: ' + message, ...optionalParams)
 			: () => {}
 
-		const generator = noteGenerator(this.app, this.settings)
+		this.logDebug('Debug logging enabled')
+
+		const generator = noteGenerator(this.app, this.settings, this.logDebug)
 
 		this.addSettingTab(new SettingsTab(this.app, this))
 

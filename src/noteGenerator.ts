@@ -10,8 +10,7 @@ import {
 import { openai } from './openai/chatGPT-types'
 import {
 	ChatStreamSettings,
-	DEFAULT_SETTINGS,
-	DEFAULT_SYSTEM_PROMPT
+	DEFAULT_SETTINGS
 } from './settings/ChatStreamSettings'
 import { Logger } from './util/logging'
 
@@ -33,7 +32,7 @@ const emptyNoteHeight = 100
 export function noteGenerator(
 	app: App,
 	settings: ChatStreamSettings,
-	logDebug: Logger = () => {}
+	logDebug: Logger
 ) {
 	const canCallAI = () => {
 		if (!settings.apiKey) {
@@ -102,54 +101,76 @@ export function noteGenerator(
 		return maybeCanvasView ? maybeCanvasView['canvas'] : null
 	}
 
-	const buildMessages = async (node: CanvasNode, canvas: Canvas) => {
+	const isSystemPromptNode = (text: string) =>
+		text.trim().startsWith('SYSTEM PROMPT')
+
+	const getSystemPrompt = async (node: CanvasNode) => {
+		let foundPrompt: string | null = null
+
+		await visitNodeAndAncestors(node, async (n) => {
+			const text = await getNodeText(n)
+			if (text && isSystemPromptNode(text)) {
+				foundPrompt = text
+				return false
+			} else {
+				return true
+			}
+		})
+
+		return foundPrompt || settings.systemPrompt
+	}
+
+	const buildMessages = async (node: CanvasNode) => {
 		const encoding = encodingForModel(
 			(settings.apiModel || DEFAULT_SETTINGS.apiModel) as TiktokenModel
 		)
 
 		const messages: openai.ChatCompletionRequestMessage[] = []
-
 		let tokenCount = 0
-		let done = false
+
+		// Note: We are not checking for system prompt longer than context window.
+		// That scenario makes no sense, though.
+		const systemPrompt = await getSystemPrompt(node)
+		if (systemPrompt) {
+			tokenCount += encoding.encode(systemPrompt).length
+		}
 
 		const visit = async (node: CanvasNode, depth: number) => {
-			if (settings.maxDepth && depth > settings.maxDepth) return
+			if (settings.maxDepth && depth > settings.maxDepth) return false
 
 			const nodeData = node.getData()
-			let nodeText = (await getNodeText(node)) || ''
+			let nodeText = (await getNodeText(node))?.trim() || ''
 			const inputLimit = getTokenLimit(settings)
 
-			const parents = canvas
-				.getEdgesForNode(node)
-				.filter((edge) => edge.to.node.id === node.id)
-				.map((edge) => edge.from.node)
+			let shouldContinue = true
 
-			if (nodeText.trim()) {
-				// Handle in-canvas system prompt
-				let role: openai.ChatCompletionRequestMessageRoleEnum =
-					nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
-				if (parents.length === 0 && nodeText.startsWith('SYSTEM PROMPT')) {
-					nodeText = nodeText.slice('SYSTEM PROMPT'.length).trim()
-					role = 'system'
-				}
+			if (nodeText) {
+				if (isSystemPromptNode(nodeText)) return true
 
-				let nodeTokenCount = encoding.encode(nodeText).length
+				let nodeTokens = encoding.encode(nodeText)
+				let keptNodeTokens: number
 
-				if (tokenCount + nodeTokenCount > inputLimit) {
-					done = true
-					const truncateTo = approximateTextLengthForTokens(
-						inputLimit - tokenCount
-					)
+				if (tokenCount + nodeTokens.length > inputLimit) {
+					// will exceed input limit
+
+					shouldContinue = false
+
+					// Leaving one token margin, just in case
+					const keepTokens = nodeTokens.slice(0, inputLimit - tokenCount - 1)
+					const truncateTextTo = encoding.decode(keepTokens).length
 					logDebug(
-						`Truncating node text from ${nodeText.length} to ${truncateTo} characters`
+						`Truncating node text from ${nodeText.length} to ${truncateTextTo} characters`
 					)
-
-					// truncate beginning of text
-					nodeText = nodeText.slice(nodeText.length - truncateTo)
-					nodeTokenCount = encoding.encode(nodeText).length
+					nodeText = nodeText.slice(0, truncateTextTo)
+					keptNodeTokens = keepTokens.length
+				} else {
+					keptNodeTokens = nodeTokens.length
 				}
 
-				tokenCount += nodeTokenCount
+				tokenCount += keptNodeTokens
+
+				const role: openai.ChatCompletionRequestMessageRoleEnum =
+					nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
 
 				messages.unshift({
 					content: nodeText,
@@ -157,28 +178,23 @@ export function noteGenerator(
 				})
 			}
 
-			if (done) {
-				return
-			}
-
-			for (const parent of parents) {
-				await visit(parent, depth + 1)
-			}
+			return shouldContinue
 		}
 
-		// Visit node and ancestors
-		await visit(node, 0)
+		await visitNodeAndAncestors(node, visit)
 
-		if (!messages.length) return { messages: [], tokenCount: 0 }
+		if (messages.length) {
+			if (systemPrompt) {
+				messages.unshift({
+					content: systemPrompt,
+					role: 'system'
+				})
+			}
 
-		if (messages[0].role !== 'system') {
-			messages.unshift({
-				content: settings.systemPrompt || DEFAULT_SYSTEM_PROMPT,
-				role: 'system'
-			})
+			return { messages, tokenCount }
+		} else {
+			return { messages: [], tokenCount: 0 }
 		}
-
-		return { messages, tokenCount }
 	}
 
 	const generateNote = async () => {
@@ -204,16 +220,14 @@ export function noteGenerator(
 			await canvas.requestSave()
 			await sleep(200)
 
-			const { messages, tokenCount } = await buildMessages(node, canvas)
+			const { messages, tokenCount } = await buildMessages(node)
 			if (!messages.length) return
-
-			logDebug('Messages for chat API', messages)
 
 			const created = createNode(
 				canvas,
 				node,
 				{
-					text: `Calling GPT (${settings.apiModel})...`,
+					text: `Calling AI (${settings.apiModel})...`,
 					size: { height: placeholderNoteHeight }
 				},
 				{
@@ -227,6 +241,8 @@ export function noteGenerator(
 			)
 
 			try {
+				logDebug('messages', messages)
+
 				const generated = await getChatGPTCompletion(
 					settings.apiKey,
 					settings.apiUrl,
@@ -277,13 +293,58 @@ export function noteGenerator(
 	return { nextNote, generateNote }
 }
 
-function approximateTextLengthForTokens(tokenCount: number) {
-	return tokenCount * 3
-}
-
 function getTokenLimit(settings: ChatStreamSettings) {
 	const model = chatModelByName(settings.apiModel) || CHAT_MODELS.GPT35
 	return settings.maxInputTokens
 		? Math.min(settings.maxInputTokens, model.tokenLimit)
 		: model.tokenLimit
+}
+
+function nodeParents(node: CanvasNode) {
+	const canvas = node.canvas
+	return canvas
+		.getEdgesForNode(node)
+		.filter((edge) => edge.to.node.id === node.id)
+		.map((edge) => edge.from.node)
+}
+
+/**
+ * Signature for node visitor
+ * @depth Current depth: zero means starting node
+ * @returns `true` if visiting should continue
+ */
+type NodeVisitor = (
+	node: CanvasNode,
+	depth: number
+) => boolean | Promise<boolean>
+
+/**
+ * Visit node and ancestors, breadth-first. Nodes are not visited twice.
+ * Stops when visitor returns `false`
+ * @returns Last visited node
+ */
+async function visitNodeAndAncestors(start: CanvasNode, visitor: NodeVisitor) {
+	let shouldContinue = true
+	const visited = new Set<string>()
+	let lastVisited: CanvasNode | null = null
+
+	const visit = async (node: CanvasNode, depth: number) => {
+		if (!shouldContinue) return
+		if (visited.has(node.id)) return
+		visited.add(node.id)
+		lastVisited = node
+
+		shouldContinue = await visitor(node, depth)
+
+		if (shouldContinue) {
+			const parents = nodeParents(node)
+			for (const parent of parents) {
+				if (shouldContinue) visit(parent, depth + 1)
+			}
+		}
+	}
+
+	await visit(start, 0)
+
+	return lastVisited
 }

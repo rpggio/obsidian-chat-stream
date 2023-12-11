@@ -70,7 +70,6 @@ export class SettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						const parsed = parseInt(value)
 						if (!isNaN(parsed)) {
-							console.log({ parsed }) ///
 							this.plugin.settings.maxInputTokens = parsed
 							await this.plugin.saveSettings()
 						}
