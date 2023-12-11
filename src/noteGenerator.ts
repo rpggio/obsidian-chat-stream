@@ -13,6 +13,7 @@ import {
 	DEFAULT_SETTINGS,
 	DEFAULT_SYSTEM_PROMPT
 } from './settings/ChatStreamSettings'
+import { Logger } from './util/logging'
 
 /**
  * Color for assistant notes: 6 == purple
@@ -29,19 +30,13 @@ const placeholderNoteHeight = 60
  */
 const emptyNoteHeight = 100
 
-export class AINodeBuilder {
-	app: App
-	settings: ChatStreamSettings
-	logDebug: (...args: unknown[]) => void = () => {}
-	unloaded = false
-
-	constructor(app: App, settings: ChatStreamSettings) {
-		this.app = app
-		this.settings = settings
-	}
-
-	canCallAI() {
-		if (!this.settings.apiKey) {
+export function noteGenerator(
+	app: App,
+	settings: ChatStreamSettings,
+	logDebug: Logger = () => {}
+) {
+	const canCallAI = () => {
+		if (!settings.apiKey) {
 			new Notice('Please set your OpenAI API key in the plugin settings')
 			return false
 		}
@@ -49,32 +44,32 @@ export class AINodeBuilder {
 		return true
 	}
 
-	async getNodeText(node: CanvasNode) {
+	const getNodeText = (node: CanvasNode) => {
 		const nodeData = node.getData()
 		switch (nodeData.type) {
 			case 'text':
 				return nodeData.text
 			case 'file':
-				return this.readFile(nodeData.file)
+				return readFile(nodeData.file)
 		}
 	}
 
-	async readFile(path: string) {
-		const file = this.app.vault.getAbstractFileByPath(path)
+	const readFile = async (path: string) => {
+		const file = app.vault.getAbstractFileByPath(path)
 		if (file instanceof TFile) {
-			const body = await this.app.vault.read(file)
+			const body = await app.vault.read(file)
 			return `## ${file.basename}\n${body}`
+		} else {
+			logDebug('Cannot read from file', file)
 		}
 	}
 
-	async nextNote() {
-		if (this.unloaded) return
+	const nextNote = async () => {
+		logDebug('Creating user note')
 
-		this.logDebug('Creating user note')
-
-		const canvas = this.getActiveCanvas()
+		const canvas = getActiveCanvas()
 		if (!canvas) {
-			this.logDebug('No active canvas')
+			logDebug('No active canvas')
 			return
 		}
 
@@ -100,16 +95,16 @@ export class AINodeBuilder {
 		}
 	}
 
-	getActiveCanvas() {
-		const maybeCanvasView = this.app.workspace.getActiveViewOfType(
+	const getActiveCanvas = () => {
+		const maybeCanvasView = app.workspace.getActiveViewOfType(
 			ItemView
 		) as CanvasView | null
 		return maybeCanvasView ? maybeCanvasView['canvas'] : null
 	}
 
-	async buildMessages(node: CanvasNode, canvas: Canvas) {
+	const buildMessages = async (node: CanvasNode, canvas: Canvas) => {
 		const encoding = encodingForModel(
-			(this.settings.apiModel || DEFAULT_SETTINGS.apiModel) as TiktokenModel
+			(settings.apiModel || DEFAULT_SETTINGS.apiModel) as TiktokenModel
 		)
 
 		const messages: openai.ChatCompletionRequestMessage[] = []
@@ -118,11 +113,11 @@ export class AINodeBuilder {
 		let done = false
 
 		const visit = async (node: CanvasNode, depth: number) => {
-			if (this.settings.maxDepth && depth > this.settings.maxDepth) return
+			if (settings.maxDepth && depth > settings.maxDepth) return
 
 			const nodeData = node.getData()
-			let nodeText = (await this.getNodeText(node)) || ''
-			const inputLimit = getTokenLimit(this.settings)
+			let nodeText = (await getNodeText(node)) || ''
+			const inputLimit = getTokenLimit(settings)
 
 			const parents = canvas
 				.getEdgesForNode(node)
@@ -145,7 +140,7 @@ export class AINodeBuilder {
 					const truncateTo = approximateTextLengthForTokens(
 						inputLimit - tokenCount
 					)
-					this.logDebug(
+					logDebug(
 						`Truncating node text from ${nodeText.length} to ${truncateTo} characters`
 					)
 
@@ -178,7 +173,7 @@ export class AINodeBuilder {
 
 		if (messages[0].role !== 'system') {
 			messages.unshift({
-				content: this.settings.systemPrompt || DEFAULT_SYSTEM_PROMPT,
+				content: settings.systemPrompt || DEFAULT_SYSTEM_PROMPT,
 				role: 'system'
 			})
 		}
@@ -186,16 +181,14 @@ export class AINodeBuilder {
 		return { messages, tokenCount }
 	}
 
-	async generateNote() {
-		if (this.unloaded) return
+	const generateNote = async () => {
+		if (!canCallAI()) return
 
-		if (!this.canCallAI()) return
+		logDebug('Creating AI note')
 
-		this.logDebug('Creating AI note')
-
-		const canvas = this.getActiveCanvas()
+		const canvas = getActiveCanvas()
 		if (!canvas) {
-			this.logDebug('No active canvas')
+			logDebug('No active canvas')
 			return
 		}
 
@@ -211,11 +204,10 @@ export class AINodeBuilder {
 			await canvas.requestSave()
 			await sleep(200)
 
-			const settings = this.settings
-			const { messages, tokenCount } = await this.buildMessages(node, canvas)
+			const { messages, tokenCount } = await buildMessages(node, canvas)
 			if (!messages.length) return
 
-			this.logDebug('Messages for chat API', messages)
+			logDebug('Messages for chat API', messages)
 
 			const created = createNode(
 				canvas,
@@ -281,6 +273,8 @@ export class AINodeBuilder {
 			await canvas.requestSave()
 		}
 	}
+
+	return { nextNote, generateNote }
 }
 
 function approximateTextLengthForTokens(tokenCount: number) {
