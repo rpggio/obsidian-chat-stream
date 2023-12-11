@@ -334,7 +334,12 @@ async function visitNodeAndAncestors(start: CanvasNode, visitor: NodeVisitor) {
 		visited.add(node.id)
 		lastVisited = node
 
-		shouldContinue = await visitor(node, depth)
+		try {
+			shouldContinue = await visitor(node, depth)
+		} catch (error) {
+			console.error(error)
+			shouldContinue = false
+		}
 
 		if (shouldContinue) {
 			const parents = nodeParents(node)
