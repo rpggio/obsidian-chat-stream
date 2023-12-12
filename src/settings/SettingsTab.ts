@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian"
+import { App, PluginSettingTab, Setting } from 'obsidian'
 import { ChatStreamPlugin } from 'src/ChatStreamPlugin'
 import { getModels } from './ChatStreamSettings'
 
@@ -30,25 +30,24 @@ export class SettingsTab extends PluginSettingTab {
 			})
 
 		new Setting(containerEl)
-			.setName("API key")
-			.setDesc(
-				"The API key to use when making requests - Get from OpenAI"
-			)
+			.setName('API key')
+			.setDesc('The API key to use when making requests - Get from OpenAI')
 			.addText((text) => {
-				text.inputEl.type = "password"
+				text.inputEl.type = 'password'
 				text
-					.setPlaceholder("API Key")
+					.setPlaceholder('API Key')
 					.setValue(this.plugin.settings.apiKey)
 					.onChange(async (value) => {
 						this.plugin.settings.apiKey = value
 						await this.plugin.saveSettings()
 					})
-			}
-			)
+			})
 
 		new Setting(containerEl)
 			.setName('System prompt')
-			.setDesc(`The system prompt sent with each request to the API. \n(Note: you can override this by beginning a note stream with a note starting 'SYSTEM PROMPT'. The remaining content of that note will be used as system prompt.)`)
+			.setDesc(
+				`The system prompt sent with each request to the API. \n(Note: you can override this by beginning a note stream with a note starting 'SYSTEM PROMPT'. The remaining content of that note will be used as system prompt.)`
+			)
 			.addTextArea((component) => {
 				component.inputEl.rows = 6
 				component.inputEl.style.width = '300px'
@@ -61,15 +60,17 @@ export class SettingsTab extends PluginSettingTab {
 			})
 
 		new Setting(containerEl)
-			.setName('Max input characters')
-			.setDesc('The maximum number of characters to send to the API (includes system prompt).')
+			.setName('Max input tokens')
+			.setDesc(
+				'The maximum number of tokens to send (within model limit). 0 means as many as possible'
+			)
 			.addText((text) =>
 				text
-					.setValue(this.plugin.settings.maxInputCharacters.toString())
+					.setValue(this.plugin.settings.maxInputTokens.toString())
 					.onChange(async (value) => {
 						const parsed = parseInt(value)
-						if (!isNaN(parsed) && parsed > 0) {
-							this.plugin.settings.maxInputCharacters = parsed
+						if (!isNaN(parsed)) {
+							this.plugin.settings.maxInputTokens = parsed
 							await this.plugin.saveSettings()
 						}
 					})
@@ -77,7 +78,9 @@ export class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Max response tokens')
-			.setDesc('The maximum number of _tokens_ to return from the API. 0 means no limit. (A token is about 4 characters).')
+			.setDesc(
+				'The maximum number of tokens to return from the API. 0 means no limit. (A token is about 4 characters).'
+			)
 			.addText((text) =>
 				text
 					.setValue(this.plugin.settings.maxResponseTokens.toString())
@@ -92,7 +95,9 @@ export class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Max depth')
-			.setDesc('The maximum depth of ancestor notes to include. 0 means no limit.')
+			.setDesc(
+				'The maximum depth of ancestor notes to include. 0 means no limit.'
+			)
 			.addText((text) =>
 				text
 					.setValue(this.plugin.settings.maxDepth.toString())
@@ -121,35 +126,32 @@ export class SettingsTab extends PluginSettingTab {
 			)
 
 		new Setting(containerEl)
-			.setName("API URL")
+			.setName('API URL')
 			.setDesc(
 				"The chat completions URL to use. You probably won't need to change this."
 			)
 			.addText((text) => {
 				text.inputEl.style.width = '300px'
 				text
-					.setPlaceholder("API URL")
+					.setPlaceholder('API URL')
 					.setValue(this.plugin.settings.apiUrl)
 					.onChange(async (value) => {
 						this.plugin.settings.apiUrl = value
 						await this.plugin.saveSettings()
 					})
-			}
-			)
+			})
 
 		new Setting(containerEl)
-			.setName("Debug output")
-			.setDesc(
-				"Enable debug output in the console"
-			)
-			.addToggle(component => {
-				component.setValue(this.plugin.settings.debug)
+			.setName('Debug output')
+			.setDesc('Enable debug output in the console')
+			.addToggle((component) => {
+				component
+					.setValue(this.plugin.settings.debug)
 					.onChange(async (value) => {
 						this.plugin.settings.debug = value
 						await this.plugin.saveSettings()
 					})
 			})
-
 	}
 }
 

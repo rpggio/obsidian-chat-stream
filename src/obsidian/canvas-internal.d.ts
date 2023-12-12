@@ -25,6 +25,7 @@ export interface CanvasNode {
 	x: number
 	y: number
 	zIndex: number
+	subpath?: string
 	convertToFile(): Promise<void>
 	focus(): void
 	getData(): AllCanvasNodeData

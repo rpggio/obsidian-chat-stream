@@ -4,7 +4,8 @@ import {
 	DEFAULT_SETTINGS
 } from './settings/ChatStreamSettings'
 import SettingsTab from './settings/SettingsTab'
-import { AINodeBuilder } from './ai-nodes'
+import { Logger } from './util/logging'
+import { noteGenerator } from './noteGenerator'
 
 /**
  * Obsidian plugin implementation.
@@ -12,7 +13,8 @@ import { AINodeBuilder } from './ai-nodes'
  */
 export class ChatStreamPlugin extends Plugin {
 	settings: ChatStreamSettings
-	aiNodeBuilder: AINodeBuilder
+	logDebug: Logger
+
 	constructor(app: App, pluginManifest: PluginManifest, pluginPath: string) {
 		super(app, pluginManifest)
 	}
@@ -20,7 +22,14 @@ export class ChatStreamPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings()
 
-		this.aiNodeBuilder = new AINodeBuilder(this.app, this.settings)
+		this.logDebug = this.settings.debug
+			? (message?: unknown, ...optionalParams: unknown[]) =>
+					console.debug('Chat Stream: ' + message, ...optionalParams)
+			: () => {}
+
+		this.logDebug('Debug logging enabled')
+
+		const generator = noteGenerator(this.app, this.settings, this.logDebug)
 
 		this.addSettingTab(new SettingsTab(this.app, this))
 
@@ -28,7 +37,7 @@ export class ChatStreamPlugin extends Plugin {
 			id: 'next-note',
 			name: 'Create next note',
 			callback: () => {
-				this.aiNodeBuilder.nextNote()
+				generator.nextNote()
 			},
 			hotkeys: [
 				{
@@ -42,7 +51,7 @@ export class ChatStreamPlugin extends Plugin {
 			id: 'generate-note',
 			name: 'Generate AI note',
 			callback: () => {
-				this.aiNodeBuilder.generateNote()
+				generator.generateNote()
 			},
 			hotkeys: [
 				{
