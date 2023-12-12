@@ -17,7 +17,7 @@ export async function readFileContent(
 				if (subText) {
 					return subText
 				} else {
-					console.warn('Failed to get subpath', { path, subpath })
+					console.warn('Failed to get subpath', { file, subpath })
 				}
 			}
 		}
