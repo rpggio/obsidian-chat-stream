@@ -70,7 +70,7 @@ export function noteGenerator(
 
 			// startEditing() doesn't work if called immediately
 			await canvas.requestSave()
-			await sleep(0)
+			await sleep(100)
 
 			created.startEditing()
 		}
