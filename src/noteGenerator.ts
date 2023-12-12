@@ -1,5 +1,5 @@
 import { TiktokenModel, encodingForModel } from 'js-tiktoken'
-import { App, ItemView, Notice, TFile } from 'obsidian'
+import { App, ItemView, Notice, TFile, resolveSubpath } from 'obsidian'
 import { Canvas, CanvasNode } from './obsidian/canvas-internal'
 import { CanvasView, calcHeight, createNode } from './obsidian/canvas-patches'
 import {
@@ -49,14 +49,34 @@ export function noteGenerator(
 			case 'text':
 				return nodeData.text
 			case 'file':
-				return readFile(nodeData.file)
+				return readFile(nodeData.file, node.subpath)
 		}
 	}
 
-	const readFile = async (path: string) => {
+	const readFile = async (path: string, subpath?: string | undefined) => {
 		const file = app.vault.getAbstractFileByPath(path)
 		if (file instanceof TFile) {
 			const body = await app.vault.read(file)
+
+			if (subpath) {
+				const cache = app.metadataCache.getFileCache(file)
+				if (cache) {
+					const resolved = resolveSubpath(cache, subpath)
+					if (resolved.start || resolved.end) {
+						const subText = body.slice(
+							resolved.start.offset,
+							resolved.end?.offset
+						)
+						if (subText) {
+							return subText
+						} else {
+							console.warn('Failed to get subpath', { path, subpath })
+						}
+					}
+				}
+			}
+
+			// Add header, as is shown in the canvas
 			return `## ${file.basename}\n${body}`
 		} else {
 			logDebug('Cannot read from file', file)
@@ -344,7 +364,7 @@ async function visitNodeAndAncestors(start: CanvasNode, visitor: NodeVisitor) {
 		if (shouldContinue) {
 			const parents = nodeParents(node)
 			for (const parent of parents) {
-				if (shouldContinue) visit(parent, depth + 1)
+				if (shouldContinue) await visit(parent, depth + 1)
 			}
 		}
 	}
