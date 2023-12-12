@@ -1,6 +1,6 @@
 import { TiktokenModel, encodingForModel } from 'js-tiktoken'
-import { App, ItemView, Notice, TFile, resolveSubpath } from 'obsidian'
-import { Canvas, CanvasNode } from './obsidian/canvas-internal'
+import { App, ItemView, Notice } from 'obsidian'
+import { CanvasNode } from './obsidian/canvas-internal'
 import { CanvasView, calcHeight, createNode } from './obsidian/canvas-patches'
 import {
 	CHAT_MODELS,
@@ -13,6 +13,8 @@ import {
 	DEFAULT_SETTINGS
 } from './settings/ChatStreamSettings'
 import { Logger } from './util/logging'
+import { visitNodeAndAncestors } from './obsidian/canvasUtil'
+import { readNodeContent } from './obsidian/fileUtil'
 
 /**
  * Color for assistant notes: 6 == purple
@@ -41,46 +43,6 @@ export function noteGenerator(
 		}
 
 		return true
-	}
-
-	const getNodeText = (node: CanvasNode) => {
-		const nodeData = node.getData()
-		switch (nodeData.type) {
-			case 'text':
-				return nodeData.text
-			case 'file':
-				return readFile(nodeData.file, node.subpath)
-		}
-	}
-
-	const readFile = async (path: string, subpath?: string | undefined) => {
-		const file = app.vault.getAbstractFileByPath(path)
-		if (file instanceof TFile) {
-			const body = await app.vault.read(file)
-
-			if (subpath) {
-				const cache = app.metadataCache.getFileCache(file)
-				if (cache) {
-					const resolved = resolveSubpath(cache, subpath)
-					if (resolved.start || resolved.end) {
-						const subText = body.slice(
-							resolved.start.offset,
-							resolved.end?.offset
-						)
-						if (subText) {
-							return subText
-						} else {
-							console.warn('Failed to get subpath', { path, subpath })
-						}
-					}
-				}
-			}
-
-			// Add header, as is shown in the canvas
-			return `## ${file.basename}\n${body}`
-		} else {
-			logDebug('Cannot read from file', file)
-		}
 	}
 
 	const nextNote = async () => {
@@ -128,7 +90,7 @@ export function noteGenerator(
 		let foundPrompt: string | null = null
 
 		await visitNodeAndAncestors(node, async (n) => {
-			const text = await getNodeText(n)
+			const text = await readNodeContent(n)
 			if (text && isSystemPromptNode(text)) {
 				foundPrompt = text
 				return false
@@ -159,7 +121,7 @@ export function noteGenerator(
 			if (settings.maxDepth && depth > settings.maxDepth) return false
 
 			const nodeData = node.getData()
-			let nodeText = (await getNodeText(node))?.trim() || ''
+			let nodeText = (await readNodeContent(node))?.trim() || ''
 			const inputLimit = getTokenLimit(settings)
 
 			let shouldContinue = true
@@ -318,58 +280,4 @@ function getTokenLimit(settings: ChatStreamSettings) {
 	return settings.maxInputTokens
 		? Math.min(settings.maxInputTokens, model.tokenLimit)
 		: model.tokenLimit
-}
-
-function nodeParents(node: CanvasNode) {
-	const canvas = node.canvas
-	return canvas
-		.getEdgesForNode(node)
-		.filter((edge) => edge.to.node.id === node.id)
-		.map((edge) => edge.from.node)
-}
-
-/**
- * Signature for node visitor
- * @depth Current depth: zero means starting node
- * @returns `true` if visiting should continue
- */
-type NodeVisitor = (
-	node: CanvasNode,
-	depth: number
-) => boolean | Promise<boolean>
-
-/**
- * Visit node and ancestors, breadth-first. Nodes are not visited twice.
- * Stops when visitor returns `false`
- * @returns Last visited node
- */
-async function visitNodeAndAncestors(start: CanvasNode, visitor: NodeVisitor) {
-	let shouldContinue = true
-	const visited = new Set<string>()
-	let lastVisited: CanvasNode | null = null
-
-	const visit = async (node: CanvasNode, depth: number) => {
-		if (!shouldContinue) return
-		if (visited.has(node.id)) return
-		visited.add(node.id)
-		lastVisited = node
-
-		try {
-			shouldContinue = await visitor(node, depth)
-		} catch (error) {
-			console.error(error)
-			shouldContinue = false
-		}
-
-		if (shouldContinue) {
-			const parents = nodeParents(node)
-			for (const parent of parents) {
-				if (shouldContinue) await visit(parent, depth + 1)
-			}
-		}
-	}
-
-	await visit(start, 0)
-
-	return lastVisited
 }
