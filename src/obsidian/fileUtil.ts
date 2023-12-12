@@ -12,18 +12,23 @@ export async function readFileContent(
 		const cache = app.metadataCache.getFileCache(file)
 		if (cache) {
 			const resolved = resolveSubpath(cache, subpath)
+			if (!resolved) {
+				console.warn('Failed to get subpath', { file, subpath })
+				return body
+			}
 			if (resolved.start || resolved.end) {
 				const subText = body.slice(resolved.start.offset, resolved.end?.offset)
 				if (subText) {
 					return subText
 				} else {
 					console.warn('Failed to get subpath', { file, subpath })
+					return body
 				}
 			}
 		}
-	} else {
-		return body
 	}
+
+	return body
 }
 
 export async function readNodeContent(node: CanvasNode) {
