@@ -8,6 +8,10 @@
   "vs-code-prettier-eslint.prettierLast": "false",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-  } // set as "true" to run 'prettier' last not first
+    "editor.defaultFormatter": "vscode.typescript-language-features",
+  },
+  "javascript.format.semicolons": "remove",
+  "typescript.format.semicolons": "remove",
+  "javascript.preferences.quoteStyle": "single",
+  "typescript.preferences.quoteStyle": "single" // set as "true" to run 'prettier' last not first
 }
