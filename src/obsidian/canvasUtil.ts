@@ -1,58 +1,54 @@
 import { CanvasNode } from 'src/obsidian/canvas-internal'
 
+export type HasId = {
+	id: string
+}
+
+export type NodeVisitor = (node: HasId, depth: number) => Promise<boolean>
+
+/**
+ * Get parents for canvas node
+ */
 export function nodeParents(node: CanvasNode) {
 	const canvas = node.canvas
-	return canvas
+	const nodes = canvas
 		.getEdgesForNode(node)
 		.filter((edge) => edge.to.node.id === node.id)
 		.map((edge) => edge.from.node)
+	// Left-to-right for node ordering
+	nodes.sort((a, b) => b.x - a.x)
+	return nodes
 }
 
 /**
- * Signature for node visitor
- * @depth Current depth: zero means starting node
- * @returns `true` if visiting should continue
- */
-export type NodeVisitor = (
-	node: CanvasNode,
-	depth: number
-) => boolean | Promise<boolean>
-
-/**
- * Visit node and ancestors, breadth-first. Nodes are not visited twice.
- * Stops when visitor returns `false`
- * @returns Last visited node
+ * Visit node and ancestors breadth-first
  */
 export async function visitNodeAndAncestors(
-	start: CanvasNode,
-	visitor: NodeVisitor
+	start: { id: string },
+	visitor: NodeVisitor,
+	getNodeParents: (node: HasId) => HasId[] = nodeParents
 ) {
-	let shouldContinue = true
 	const visited = new Set<string>()
-	let lastVisited: CanvasNode | null = null
+	const queue: { node: HasId; depth: number }[] = [{ node: start, depth: 0 }]
 
-	const visit = async (node: CanvasNode, depth: number) => {
-		if (!shouldContinue) return
-		if (visited.has(node.id)) return
-		visited.add(node.id)
-		lastVisited = node
-
-		try {
-			shouldContinue = await visitor(node, depth)
-		} catch (error) {
-			console.error(error)
-			shouldContinue = false
+	while (queue.length > 0) {
+		const { node: currentNode, depth } = queue.shift()!
+		if (visited.has(currentNode.id)) {
+			continue
 		}
 
-		if (shouldContinue) {
-			const parents = nodeParents(node)
-			for (const parent of parents) {
-				if (shouldContinue) await visit(parent, depth + 1)
+		const shouldContinue = await visitor(currentNode, depth)
+		if (!shouldContinue) {
+			break
+		}
+
+		visited.add(currentNode.id)
+
+		const parents = getNodeParents(currentNode)
+		for (const parent of parents) {
+			if (!visited.has(parent.id)) {
+				queue.push({ node: parent, depth: depth + 1 })
 			}
 		}
 	}
-
-	await visit(start, 0)
-
-	return lastVisited
 }

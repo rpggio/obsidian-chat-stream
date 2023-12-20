@@ -12,7 +12,8 @@
 		"isolatedModules": true,
 		"strictNullChecks": true,
 		"skipLibCheck": true,
-		"lib": ["DOM", "ES5", "ES6", "ES7"]
+		"lib": ["DOM", "ES5", "ES6", "ES7"],
+		"types": ["jest", "node", "@types/jest"]
 	},
 	"include": ["**/*.ts"],
 	"exclude": ["node_modules"]

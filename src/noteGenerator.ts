@@ -89,7 +89,7 @@ export function noteGenerator(
 	const getSystemPrompt = async (node: CanvasNode) => {
 		let foundPrompt: string | null = null
 
-		await visitNodeAndAncestors(node, async (n) => {
+		await visitNodeAndAncestors(node, async (n: CanvasNode) => {
 			const text = await readNodeContent(n)
 			if (text && isSystemPromptNode(text)) {
 				foundPrompt = text
