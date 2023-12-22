@@ -45,6 +45,16 @@ export interface ChatStreamSettings {
 	 * The maximum depth of ancestor notes to include. 0 means no limit.
 	 */
 	maxDepth: number
+
+	/**
+	 * Module settings
+	 */
+	moduleSettings: ModuleSettings[]
+}
+
+type ModuleSettings = {
+	module: string
+	enabled: boolean
 }
 
 export const DEFAULT_SYSTEM_PROMPT = `
@@ -64,7 +74,13 @@ export const DEFAULT_SETTINGS: ChatStreamSettings = {
 	debug: false,
 	maxInputTokens: 0,
 	maxResponseTokens: 0,
-	maxDepth: 0
+	maxDepth: 0,
+	moduleSettings: [
+		{
+			module: 'canvas-chat',
+			enabled: true
+		}
+	]
 }
 
 export function getModels() {

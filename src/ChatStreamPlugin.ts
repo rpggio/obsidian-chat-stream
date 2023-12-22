@@ -5,13 +5,16 @@ import {
 } from './settings/ChatStreamSettings'
 import SettingsTab from './settings/SettingsTab'
 import { Logger } from './util/logging'
-import { noteGenerator } from './noteGenerator'
+import { ChatStreamEvent, ModuleContext, PluginModule, eventKey } from './types'
+import { canvasChatModule as createCanvasChatModule } from './modules/canvas-chat'
 
 /**
  * Obsidian plugin implementation.
  * Note: Canvas has no supported API. This plugin uses internal APIs that may change without notice.
  */
-export class ChatStreamPlugin extends Plugin {
+export class ChatStreamPlugin extends Plugin implements ModuleContext {
+	modules: PluginModule[]
+	callbacks = new Map<string, Set<() => void>>()
 	settings: ChatStreamSettings
 	logDebug: Logger
 
@@ -19,17 +22,78 @@ export class ChatStreamPlugin extends Plugin {
 		super(app, pluginManifest)
 	}
 
+	on(event: ChatStreamEvent, callback: () => void): void {
+		const key = eventKey(event)
+		let callbacks = this.callbacks.get(key)
+		if (!callbacks) {
+			callbacks = new Set()
+			this.callbacks.set(key, callbacks)
+		}
+		callbacks.add(callback)
+	}
+
+	off(callback: () => void) {
+		this.callbacks.forEach(callbacks => callbacks.delete(callback))
+	}
+
+	private sendEvent(event: ChatStreamEvent) {
+		const key = eventKey(event)
+		const callbacks = this.callbacks.get(key)
+		if (callbacks) {
+			callbacks.forEach(callback => callback())
+		}
+	}
+
+	getModule(id: string) {
+		return this.modules.find(module => module.id === id)
+	}
+
+	async enableModule(moduleId: string) {
+		const module = this.getModule(moduleId)
+		if (!module) {
+			throw new Error('Unknown module: ' + moduleId)
+		}
+		const setting = this.settings.moduleSettings.find((setting) => setting.module === moduleId)!
+		setting.enabled = true
+		await module.load()
+		await this.saveSettings()
+
+		console.log('Enabled module: ' + moduleId)
+	}
+
+	async disableModule(moduleId: string) {
+		const module = this.getModule(moduleId)
+		if (!module) {
+			throw new Error('Unknown module: ' + moduleId)
+		}
+		const setting = this.settings.moduleSettings.find((setting) => setting.module === moduleId)!
+		setting.enabled = false
+		await module.unload()
+		await this.saveSettings()
+
+		console.log('Disabled module: ' + moduleId)
+	}
+
 	async onload() {
 		await this.loadSettings()
 
 		this.logDebug = this.settings.debug
 			? (message?: unknown, ...optionalParams: unknown[]) =>
-					console.debug('Chat Stream: ' + message, ...optionalParams)
-			: () => {}
+				console.debug('Chat Stream: ' + message, ...optionalParams)
+			: () => { }
 
 		this.logDebug('Debug logging enabled')
 
-		const generator = noteGenerator(this.app, this.settings, this.logDebug)
+		this.modules = [
+			createCanvasChatModule(this)
+		]
+
+		for (const module of this.modules) {
+			const setting = this.settings.moduleSettings.find((setting) => setting.module === module.id)
+			if (setting?.enabled) {
+				module.load()
+			}
+		}
 
 		this.addSettingTab(new SettingsTab(this.app, this))
 
@@ -37,7 +101,7 @@ export class ChatStreamPlugin extends Plugin {
 			id: 'next-note',
 			name: 'Create next note',
 			callback: () => {
-				generator.nextNote()
+				this.sendEvent({ type: 'command', command: 'next-note' })
 			},
 			hotkeys: [
 				{
@@ -51,7 +115,7 @@ export class ChatStreamPlugin extends Plugin {
 			id: 'generate-note',
 			name: 'Generate AI note',
 			callback: () => {
-				generator.generateNote()
+				this.sendEvent({ type: 'command', command: 'generate-note' })
 			},
 			hotkeys: [
 				{
@@ -60,6 +124,11 @@ export class ChatStreamPlugin extends Plugin {
 				}
 			]
 		})
+	}
+
+	onunload() {
+		this.modules.forEach(module => module.unload())
+		this.callbacks.clear()
 	}
 
 	async loadSettings() {

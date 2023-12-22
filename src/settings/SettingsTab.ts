@@ -152,6 +152,39 @@ export class SettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings()
 					})
 			})
+
+
+		containerEl.createEl("h1", {
+			text: "Modules",
+		})
+
+		this.plugin.modules.forEach((module) => {
+			const moduleContainer = containerEl.createDiv(`module-${module.id}`)
+
+			moduleContainer.createEl("h3", {
+				text: module.name,
+			})
+
+			moduleContainer.createEl("p", {
+				text: module.description,
+			})
+
+			new Setting(containerEl)
+				.setName('Enabled')
+				.addToggle((component) => {
+					component
+						.setValue(this.plugin.settings.moduleSettings.find((setting) => setting.module === module.id)?.enabled ?? false)
+						.onChange(async (value) => {
+							if (value) {
+								await this.plugin.enableModule(module.id)
+							} else {
+								await this.plugin.disableModule(module.id)
+							}
+						})
+				})
+
+			module.buildSettingsUI(moduleContainer)
+		})
 	}
 }
 
