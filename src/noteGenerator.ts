@@ -1,6 +1,5 @@
 import { TiktokenModel, encodingForModel } from 'js-tiktoken'
-import { App, Notice } from 'obsidian'
-import { calcHeight, createNode, getActiveCanvas, readNoteContent, visitNodeAndAncestors } from './obsidian'
+import { Notice } from 'obsidian'
 import {
 	CHAT_MODELS,
 	chatModelByName,
@@ -11,9 +10,8 @@ import {
 	ChatStreamSettings,
 	DEFAULT_SETTINGS
 } from './settings/ChatStreamSettings'
-import { Logger } from './util/logging'
-import { CanvasNode } from './obsidian/canvas-internal'
 import { ModuleContext } from './types'
+import { CanvasNode, calcHeight, createNode, getActiveCanvas, readNoteContent, visitNoteAndAncestors } from './obsidian'
 
 /**
  * Color for assistant notes: 6 == purple
@@ -72,13 +70,17 @@ export function noteGenerator(
 				text,
 				size: { height }
 			})
-			canvas.selectOnly(created, true /* startEditing */)
 
-			// startEditing() doesn't work if called immediately
+			const shouldStartEditing = !text
+
+			canvas.selectOnly(created, shouldStartEditing)
 			await canvas.requestSave()
-			await sleep(100)
 
-			created.startEditing()
+			if (shouldStartEditing) {
+				// startEditing() doesn't work if called immediately
+				await sleep(100)
+				created.startEditing()
+			}
 			return true
 		}
 	}
@@ -89,7 +91,7 @@ export function noteGenerator(
 	const getSystemPrompt = async (node: CanvasNode) => {
 		let foundPrompt: string | null = null
 
-		await visitNodeAndAncestors(node, async (n: CanvasNode) => {
+		await visitNoteAndAncestors(node, async (n: CanvasNode) => {
 			const text = await readNoteContent(n)
 			if (text && isSystemPromptNode(text)) {
 				foundPrompt = text
@@ -163,7 +165,7 @@ export function noteGenerator(
 			return shouldContinue
 		}
 
-		await visitNodeAndAncestors(node, visit)
+		await visitNoteAndAncestors(node, visit)
 
 		if (messages.length) {
 			if (systemPrompt) {

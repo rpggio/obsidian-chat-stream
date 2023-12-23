@@ -47,7 +47,7 @@ export class ChatStreamPlugin extends Plugin implements ModuleContext {
 				handled: false
 			}
 
-			this.logDebug(`Sending event ${type}`)
+			this.logDebug(`Sending event`, type)
 
 			// Send events in reverse order, so last added handler
 			// has first chance to handle the event.

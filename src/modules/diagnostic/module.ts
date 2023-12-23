@@ -1,5 +1,5 @@
 import { getActiveCanvas } from 'src/obsidian'
-import { ModuleContext } from '../../types'
+import { ModuleContext } from 'src/types'
 
 export function createDiagnosticModule(context: ModuleContext) {
     const { app } = context

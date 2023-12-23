@@ -1,9 +1,7 @@
 import { moment } from 'obsidian'
 import { noteGenerator } from 'src/noteGenerator'
 
-import { readNoteContent } from 'src/obsidian'
-import { CanvasNode } from 'src/obsidian/canvas-internal'
-import { getActiveCanvas, inboundEdges } from 'src/obsidian/canvasUtil'
+import { CanvasNode, getActiveCanvas, getNoteChildren, inboundEdges, readNoteContent } from 'src/obsidian'
 import { Maybe, ModuleContext } from 'src/types'
 
 const templateSlotRegex = /\{\{\s*([\w-]+)\s*\}\}/g
@@ -42,7 +40,14 @@ export function TemplateExpansion(context: ModuleContext) {
         })
 
         if (changed) {
-            await generator.nextNote(replaced)
+            const children = getNoteChildren(note)
+            if (children.length === 1) {
+                // If single child, replace it
+                await children[0].setText(replaced)
+                await note.canvas.requestSave()
+            } else {
+                await generator.nextNote(replaced)
+            }
         }
 
         return changed
