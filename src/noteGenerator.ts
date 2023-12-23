@@ -1,7 +1,6 @@
 import { TiktokenModel, encodingForModel } from 'js-tiktoken'
-import { App, ItemView, Notice } from 'obsidian'
-import { CanvasNode } from './obsidian/canvas-internal'
-import { CanvasView, calcHeight, createNode } from './obsidian/canvas-patches'
+import { App, Notice } from 'obsidian'
+import { calcHeight, createNode, getActiveCanvas, readNoteContent, visitNodeAndAncestors } from './obsidian'
 import {
 	CHAT_MODELS,
 	chatModelByName,
@@ -13,8 +12,8 @@ import {
 	DEFAULT_SETTINGS
 } from './settings/ChatStreamSettings'
 import { Logger } from './util/logging'
-import { visitNodeAndAncestors } from './obsidian/canvasUtil'
-import { readNodeContent } from './obsidian/fileUtil'
+import { CanvasNode } from './obsidian/canvas-internal'
+import { ModuleContext } from './types'
 
 /**
  * Color for assistant notes: 6 == purple
@@ -32,10 +31,10 @@ const placeholderNoteHeight = 60
 const emptyNoteHeight = 100
 
 export function noteGenerator(
-	app: App,
-	settings: ChatStreamSettings,
-	logDebug: Logger
+	context: ModuleContext
 ) {
+	const { app, settings, logDebug } = context
+
 	const canCallAI = () => {
 		if (!settings.apiKey) {
 			new Notice('Please set your OpenAI API key in the plugin settings')
@@ -45,10 +44,10 @@ export function noteGenerator(
 		return true
 	}
 
-	const nextNote = async () => {
+	const nextNote = async (text: string = '') => {
 		logDebug('Creating user note')
 
-		const canvas = getActiveCanvas()
+		const canvas = getActiveCanvas(app)
 		if (!canvas) {
 			logDebug('No active canvas')
 			return
@@ -62,9 +61,16 @@ export function noteGenerator(
 		const node = values[0]
 
 		if (node) {
+			const height = text
+				? calcHeight({
+					text,
+					parentHeight: emptyNoteHeight
+				})
+				: emptyNoteHeight
+
 			const created = createNode(canvas, node, {
-				text: '',
-				size: { height: emptyNoteHeight }
+				text,
+				size: { height }
 			})
 			canvas.selectOnly(created, true /* startEditing */)
 
@@ -73,14 +79,8 @@ export function noteGenerator(
 			await sleep(100)
 
 			created.startEditing()
+			return true
 		}
-	}
-
-	const getActiveCanvas = () => {
-		const maybeCanvasView = app.workspace.getActiveViewOfType(
-			ItemView
-		) as CanvasView | null
-		return maybeCanvasView ? maybeCanvasView['canvas'] : null
 	}
 
 	const isSystemPromptNode = (text: string) =>
@@ -90,7 +90,7 @@ export function noteGenerator(
 		let foundPrompt: string | null = null
 
 		await visitNodeAndAncestors(node, async (n: CanvasNode) => {
-			const text = await readNodeContent(n)
+			const text = await readNoteContent(n)
 			if (text && isSystemPromptNode(text)) {
 				foundPrompt = text
 				return false
@@ -121,7 +121,7 @@ export function noteGenerator(
 			if (settings.maxDepth && depth > settings.maxDepth) return false
 
 			const nodeData = node.getData()
-			let nodeText = (await readNodeContent(node))?.trim() || ''
+			let nodeText = (await readNoteContent(node))?.trim() || ''
 			const inputLimit = getTokenLimit(settings)
 
 			let shouldContinue = true
@@ -179,21 +179,21 @@ export function noteGenerator(
 		}
 	}
 
-	const generateNote = async () => {
-		if (!canCallAI()) return
+	const generateNote: () => Promise<boolean> = async () => {
+		if (!canCallAI()) return false
 
 		logDebug('Creating AI note')
 
-		const canvas = getActiveCanvas()
+		const canvas = getActiveCanvas(app)
 		if (!canvas) {
 			logDebug('No active canvas')
-			return
+			return false
 		}
 
 		await canvas.requestFrame()
 
 		const selection = canvas.selection
-		if (selection?.size !== 1) return
+		if (selection?.size !== 1) return false
 		const values = Array.from(selection.values())
 		const node = values[0]
 
@@ -203,7 +203,7 @@ export function noteGenerator(
 			await sleep(200)
 
 			const { messages, tokenCount } = await buildMessages(node)
-			if (!messages.length) return
+			if (!messages.length) return false
 
 			const created = createNode(
 				canvas,
@@ -239,7 +239,7 @@ export function noteGenerator(
 				if (generated == null) {
 					new Notice(`Empty or unreadable response from GPT`)
 					canvas.removeNode(created)
-					return
+					return true
 				}
 
 				created.setText(generated)
@@ -269,7 +269,10 @@ export function noteGenerator(
 			}
 
 			await canvas.requestSave()
+			return true
 		}
+
+		return false
 	}
 
 	return { nextNote, generateNote }

@@ -5,8 +5,10 @@ import {
 } from './settings/ChatStreamSettings'
 import SettingsTab from './settings/SettingsTab'
 import { Logger } from './util/logging'
-import { ChatStreamEvent, ModuleContext, PluginModule, eventKey } from './types'
-import { canvasChatModule as createCanvasChatModule } from './modules/canvas-chat'
+import { ChatStreamEvent, ChatStreamEventHandler, ChatStreamEventType, ModuleContext, PluginModule, eventKey } from './types'
+import { createCanvasChatModule as createCanvasChatModule } from './modules/canvas-chat/module'
+import { createDiagnosticModule } from './modules/diagnostic/module'
+import { createExpandTemplateModule } from './modules/expand-template/module'
 
 /**
  * Obsidian plugin implementation.
@@ -14,7 +16,7 @@ import { canvasChatModule as createCanvasChatModule } from './modules/canvas-cha
  */
 export class ChatStreamPlugin extends Plugin implements ModuleContext {
 	modules: PluginModule[]
-	callbacks = new Map<string, Set<() => void>>()
+	handlers = new Map<string, Set<ChatStreamEventHandler>>()
 	settings: ChatStreamSettings
 	logDebug: Logger
 
@@ -22,25 +24,44 @@ export class ChatStreamPlugin extends Plugin implements ModuleContext {
 		super(app, pluginManifest)
 	}
 
-	on(event: ChatStreamEvent, callback: () => void): void {
+	on(event: ChatStreamEventType, handler: ChatStreamEventHandler): void {
 		const key = eventKey(event)
-		let callbacks = this.callbacks.get(key)
-		if (!callbacks) {
-			callbacks = new Set()
-			this.callbacks.set(key, callbacks)
+		let handlers = this.handlers.get(key)
+		if (!handlers) {
+			handlers = new Set()
+			this.handlers.set(key, handlers)
 		}
-		callbacks.add(callback)
+		handlers.add(handler)
 	}
 
-	off(callback: () => void) {
-		this.callbacks.forEach(callbacks => callbacks.delete(callback))
+	off(callback: ChatStreamEventHandler) {
+		this.handlers.forEach(callbacks => callbacks.delete(callback))
 	}
 
-	private sendEvent(event: ChatStreamEvent) {
-		const key = eventKey(event)
-		const callbacks = this.callbacks.get(key)
-		if (callbacks) {
-			callbacks.forEach(callback => callback())
+	private async sendEvent(type: ChatStreamEventType) {
+		const key = eventKey(type)
+		const handlers = this.handlers.get(key)
+		if (handlers) {
+			const event: ChatStreamEvent = {
+				type,
+				handled: false
+			}
+
+			this.logDebug(`Sending event ${type}`)
+
+			// Send events in reverse order, so last added handler
+			// has first chance to handle the event.
+			for (const handler of Array.from(handlers).reverse()) {
+				await handler(event)
+				if (event.handled) {
+					this.logDebug(`Handled by ${handler}`)
+					break
+				}
+			}
+
+			if (!event.handled) {
+				this.logDebug(`Event not handled`)
+			}
 		}
 	}
 
@@ -48,13 +69,26 @@ export class ChatStreamPlugin extends Plugin implements ModuleContext {
 		return this.modules.find(module => module.id === id)
 	}
 
+	isModuleEnabled(moduleId: string) {
+		return this.settings.moduleSettings.find(
+			(setting) => setting.module === moduleId)?.enabled ?? false
+	}
+
 	async enableModule(moduleId: string) {
 		const module = this.getModule(moduleId)
 		if (!module) {
 			throw new Error('Unknown module: ' + moduleId)
 		}
-		const setting = this.settings.moduleSettings.find((setting) => setting.module === moduleId)!
-		setting.enabled = true
+		const setting = this.settings.moduleSettings.find((setting) => setting.module === moduleId)
+		if (!setting) {
+			this.settings.moduleSettings.push({
+				module: moduleId,
+				enabled: true
+			})
+		} else {
+			setting.enabled = true
+		}
+
 		await module.load()
 		await this.saveSettings()
 
@@ -83,9 +117,10 @@ export class ChatStreamPlugin extends Plugin implements ModuleContext {
 			: () => { }
 
 		this.logDebug('Debug logging enabled')
-
 		this.modules = [
-			createCanvasChatModule(this)
+			createCanvasChatModule(this),
+			createExpandTemplateModule(this),
+			createDiagnosticModule(this)
 		]
 
 		for (const module of this.modules) {
@@ -100,9 +135,9 @@ export class ChatStreamPlugin extends Plugin implements ModuleContext {
 		this.addCommand({
 			id: 'next-note',
 			name: 'Create next note',
-			callback: () => {
+			callback: () =>
 				this.sendEvent({ type: 'command', command: 'next-note' })
-			},
+			,
 			hotkeys: [
 				{
 					modifiers: ['Alt', 'Shift'],
@@ -114,9 +149,9 @@ export class ChatStreamPlugin extends Plugin implements ModuleContext {
 		this.addCommand({
 			id: 'generate-note',
 			name: 'Generate AI note',
-			callback: () => {
+			callback: () =>
 				this.sendEvent({ type: 'command', command: 'generate-note' })
-			},
+			,
 			hotkeys: [
 				{
 					modifiers: ['Alt', 'Shift'],
@@ -128,7 +163,7 @@ export class ChatStreamPlugin extends Plugin implements ModuleContext {
 
 	onunload() {
 		this.modules.forEach(module => module.unload())
-		this.callbacks.clear()
+		this.handlers.clear()
 	}
 
 	async loadSettings() {

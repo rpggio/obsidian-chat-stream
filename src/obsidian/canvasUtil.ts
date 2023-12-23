@@ -1,4 +1,6 @@
+import { App, ItemView } from 'obsidian'
 import { CanvasNode } from 'src/obsidian/canvas-internal'
+import { CanvasView } from './canvas-patches'
 
 export type HasId = {
 	id: string
@@ -18,6 +20,16 @@ export function nodeParents(node: CanvasNode) {
 	// Left-to-right for node ordering
 	nodes.sort((a, b) => b.x - a.x)
 	return nodes
+}
+
+/**
+ * Get eddges pointing to node
+ */
+export function inboundEdges(node: CanvasNode) {
+	const canvas = node.canvas
+	return canvas
+		.getEdgesForNode(node)
+		.filter((edge) => edge.to.node.id === node.id)
 }
 
 /**
@@ -51,4 +63,11 @@ export async function visitNodeAndAncestors(
 			}
 		}
 	}
+}
+
+export function getActiveCanvas(app: App) {
+	const maybeCanvasView = app.workspace.getActiveViewOfType(
+		ItemView
+	) as CanvasView | null
+	return maybeCanvasView ? maybeCanvasView['canvas'] : null
 }

@@ -52,6 +52,7 @@ export interface CanvasEdge {
 	to: {
 		node: CanvasNode
 	}
+	label: string | undefined
 }
 
 export interface Canvas {

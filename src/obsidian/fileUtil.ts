@@ -31,7 +31,7 @@ export async function readFileContent(
 	return body
 }
 
-export async function readNodeContent(node: CanvasNode) {
+export async function readNoteContent(node: CanvasNode) {
 	const app = node.app
 	const nodeData = node.getData()
 	switch (nodeData.type) {

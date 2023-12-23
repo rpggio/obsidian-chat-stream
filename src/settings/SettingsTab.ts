@@ -153,12 +153,13 @@ export class SettingsTab extends PluginSettingTab {
 					})
 			})
 
-
 		containerEl.createEl("h1", {
 			text: "Modules",
 		})
 
-		this.plugin.modules.forEach((module) => {
+		const visibleModules = this.plugin.modules.filter((module) => !module.hidden)
+
+		visibleModules.forEach((module) => {
 			const moduleContainer = containerEl.createDiv(`module-${module.id}`)
 
 			moduleContainer.createEl("h3", {
@@ -173,7 +174,7 @@ export class SettingsTab extends PluginSettingTab {
 				.setName('Enabled')
 				.addToggle((component) => {
 					component
-						.setValue(this.plugin.settings.moduleSettings.find((setting) => setting.module === module.id)?.enabled ?? false)
+						.setValue(this.plugin.isModuleEnabled(module.id))
 						.onChange(async (value) => {
 							if (value) {
 								await this.plugin.enableModule(module.id)
@@ -183,7 +184,7 @@ export class SettingsTab extends PluginSettingTab {
 						})
 				})
 
-			module.buildSettingsUI(moduleContainer)
+			module.buildSettingsUI?.(moduleContainer)
 		})
 	}
 }

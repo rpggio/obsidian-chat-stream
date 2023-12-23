@@ -1,16 +1,25 @@
-import { App } from 'obsidian'
+import { App, Command } from 'obsidian'
 import { ChatStreamSettings } from './settings/ChatStreamSettings'
 import { Logger } from './util/logging'
 
-export const chatStreamCommands = ['next-note', 'generate-note'] as const
+export type Maybe<T> = T | null | undefined
+
+export const chatStreamCommands = ['next-note', 'generate-note', 'dump-selection'] as const
 
 export type ChatStreamCommand = typeof chatStreamCommands[number]
 
-export type ChatStreamEvent = {
+export type ChatStreamEventType = {
     type: 'command', command: ChatStreamCommand
 }
 
-export function eventKey(event: ChatStreamEvent) {
+export type ChatStreamEvent = {
+    type: ChatStreamEventType
+    handled: boolean
+}
+
+export type ChatStreamEventHandler = (event: ChatStreamEvent) => Promise<unknown>
+
+export function eventKey(event: ChatStreamEventType) {
     if (event.type === 'command') {
         return event.type + '_' + event.command
     }
@@ -20,9 +29,10 @@ export function eventKey(event: ChatStreamEvent) {
 export interface ModuleContext {
     app: App
     settings: ChatStreamSettings
+    addCommand(command: Command): Command
 
-    on(event: ChatStreamEvent, callback: () => void): void
-    off(callback: () => void): void
+    on(event: ChatStreamEventType, handler: ChatStreamEventHandler): void
+    off(hadler: ChatStreamEventHandler): void
 
     logDebug: Logger
 }
@@ -31,7 +41,8 @@ export interface PluginModule {
     id: string
     name: string
     description: string
-    buildSettingsUI(container: HTMLElement): void
+    hidden?: boolean
+    buildSettingsUI?(container: HTMLElement): void
     load(): Promise<void>
     unload(): Promise<void>
 }

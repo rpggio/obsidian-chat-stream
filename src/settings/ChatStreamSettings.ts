@@ -1,4 +1,4 @@
-import { CHAT_MODELS, OPENAI_COMPLETIONS_URL } from 'src/openai/chatGPT'
+import { CHAT_MODELS, OPENAI_COMPLETIONS_URL } from '../openai/chatGPT'
 
 export interface ChatStreamSettings {
 	/**
@@ -30,6 +30,11 @@ export interface ChatStreamSettings {
 	 * Enable debug output in the console
 	 */
 	debug: boolean
+
+	/**
+	 * Enable deveveloper mode
+	 */
+	dev: boolean
 
 	/**
 	 * The maximum number of tokens to send (up to model limit). 0 means as many as possible.
@@ -72,6 +77,7 @@ export const DEFAULT_SETTINGS: ChatStreamSettings = {
 	temperature: 1,
 	systemPrompt: DEFAULT_SYSTEM_PROMPT,
 	debug: false,
+	dev: false,
 	maxInputTokens: 0,
 	maxResponseTokens: 0,
 	maxDepth: 0,
