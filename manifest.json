@@ -1,13 +1,13 @@
 {
-	"id": "chat-stream",
-	"name": "Chat Stream",
-	"version": "1.4.4",
-	"minAppVersion": "1.1.10",
-	"description": "Create branching GPT chats using canvas notes.",
-	"author": "Ryan P Smith",
-	"authorUrl": "https://github.com/rpggio",
-	"isDesktopOnly": true,
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://bmc.link/ryanp"
-	}
+    "id": "chat-stream",
+    "name": "Chat Stream",
+    "version": "1.4.4",
+    "minAppVersion": "1.1.10",
+    "description": "Create branching GPT chats using canvas notes. FORKED by daniel347x",
+    "author": "Ryan P Smith",
+    "authorUrl": "https://github.com/rpggio",
+    "isDesktopOnly": true,
+    "fundingUrl": {
+        "Buy Me a Coffee": "https://bmc.link/ryanp"
+    }
 }
