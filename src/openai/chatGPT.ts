@@ -16,6 +16,10 @@ export const CHAT_MODELS = {
 		name: 'gpt-4',
 		tokenLimit: 8000
 	},
+	GPT_4_0125_PREVIEW: {
+		name: 'gpt-4-0125-preview',
+		tokenLimit: 128000
+	},
 	GPT_4_1106_PREVIEW: {
 		name: 'gpt-4-1106-preview',
 		tokenLimit: 128000
