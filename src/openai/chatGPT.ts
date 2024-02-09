@@ -4,29 +4,53 @@ import { openai } from './chatGPT-types'
 export const OPENAI_COMPLETIONS_URL = `https://api.openai.com/v1/chat/completions`
 
 export const CHAT_MODELS = {
-	GPT35: {
+	GPT_35_TURBO: {
 		name: 'gpt-3.5-turbo',
 		tokenLimit: 4096
 	},
-	GPT35_16K: {
-		name: 'gpt-3.5-turbo-16k',
-		tokenLimit: 16384
+	GPT_35_TURBO_0125: {
+		name: 'gpt-3.5-turbo-0125',
+		tokenLimit: 16385
 	},
-	GPT4: {
+	GPT_35_16K: {
+		name: 'gpt-3.5-turbo-16k',
+		tokenLimit: 16385
+	},
+	GPT_35_TURBO_1106: {
+		name: 'gpt-3.5-turbo-1106',
+		tokenLimit: 16385
+	},
+	GPT_4: {
 		name: 'gpt-4',
-		tokenLimit: 8000
+		tokenLimit: 8192
+	},
+	GPT_4_TURBO_PREVIEW: {
+		name: 'gpt-4-turbo-preview',
+		tokenLimit: 128000
+	},
+	GPT_4_0125_PREVIEW: {
+		name: 'gpt-4-0125-preview',
+		tokenLimit: 128000
 	},
 	GPT_4_1106_PREVIEW: {
 		name: 'gpt-4-1106-preview',
 		tokenLimit: 128000
 	},
-	GPT4_32K: {
+	GPT_4_0613: {
+		name: 'gpt-4-0613',
+		tokenLimit: 8192
+	},
+	GPT_4_32K: {
 		name: 'gpt-4-32k',
 		tokenLimit: 32768
+	},
+	GPT_4_32K_0613: {
+		name: 'gpt-4-32k-0613',
+		tokenLimit: 32768
 	}
-}
+} as const
 
-export type ChatGPTModel = typeof CHAT_MODELS.GPT35 | typeof CHAT_MODELS.GPT4
+export type ChatGPTModel = keyof typeof CHAT_MODELS
 
 export type ChatGPTModelType = keyof typeof CHAT_MODELS
 
@@ -35,15 +59,15 @@ export function chatModelByName(name: string) {
 }
 
 export const defaultChatGPTSettings: Partial<openai.CreateChatCompletionRequest> =
-	{
-		model: CHAT_MODELS.GPT35.name,
-		max_tokens: 500,
-		temperature: 0,
-		top_p: 1.0,
-		presence_penalty: 0,
-		frequency_penalty: 0,
-		stop: []
-	}
+{
+	model: CHAT_MODELS.GPT_35_TURBO.name,
+	max_tokens: 500,
+	temperature: 0,
+	top_p: 1.0,
+	presence_penalty: 0,
+	frequency_penalty: 0,
+	stop: []
+}
 
 export async function getChatGPTCompletion(
 	apiKey: string,

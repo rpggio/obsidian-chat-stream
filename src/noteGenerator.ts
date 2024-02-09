@@ -276,7 +276,7 @@ export function noteGenerator(
 }
 
 function getTokenLimit(settings: ChatStreamSettings) {
-	const model = chatModelByName(settings.apiModel) || CHAT_MODELS.GPT35
+	const model = chatModelByName(settings.apiModel) || CHAT_MODELS.GPT_35_TURBO_0125
 	return settings.maxInputTokens
 		? Math.min(settings.maxInputTokens, model.tokenLimit)
 		: model.tokenLimit

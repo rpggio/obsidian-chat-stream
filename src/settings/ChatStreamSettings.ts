@@ -58,7 +58,7 @@ Use step-by-step reasoning. Be brief.
 export const DEFAULT_SETTINGS: ChatStreamSettings = {
 	apiKey: '',
 	apiUrl: OPENAI_COMPLETIONS_URL,
-	apiModel: CHAT_MODELS.GPT35.name,
+	apiModel: CHAT_MODELS.GPT_35_TURBO.name,
 	temperature: 1,
 	systemPrompt: DEFAULT_SYSTEM_PROMPT,
 	debug: false,
