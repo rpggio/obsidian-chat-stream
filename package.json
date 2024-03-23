@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-chat-stream",
-	"version": "1.4.5",
+	"version": "1.4.6",
 	"description": "Create branching GPT chats using Obsidian canvas",
 	"main": "src/main.js",
 	"scripts": {
@@ -30,6 +30,6 @@
 		"typescript": "4.7.4"
 	},
 	"dependencies": {
-		"js-tiktoken": "^1.0.8"
+		"js-tiktoken": "^1.0.10"
 	}
 }
