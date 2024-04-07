@@ -10,8 +10,8 @@ import {
 	ChatStreamSettings,
 	DEFAULT_SETTINGS
 } from './settings/ChatStreamSettings'
-import { ModuleContext } from './types'
-import { CanvasNode, calcHeight, createNode, getActiveCanvas, readNoteContent, visitNoteAndAncestors } from './obsidian'
+import { ChatStreamNodeData, ModuleContext } from './types'
+import { Canvas, CanvasNode, CanvasNodeData, calcHeight, createNode, getActiveCanvas, getNodeParents, readNoteContent, visitNoteAndAncestors } from './obsidian'
 
 /**
  * Color for assistant notes: 6 == purple
@@ -53,10 +53,9 @@ export function noteGenerator(
 
 		await canvas.requestFrame()
 
-		const selection = canvas.selection
-		if (selection?.size !== 1) return
-		const values = Array.from(selection.values()) as CanvasNode[]
-		const node = values[0]
+		const selection = canvas.getSelectionData().nodes
+		if (selection?.length !== 1) return
+		const node = selection[0]
 
 		if (node) {
 			const height = text
@@ -70,6 +69,7 @@ export function noteGenerator(
 				text,
 				size: { height }
 			})
+			if (!created) return
 
 			const shouldStartEditing = !text
 
@@ -88,7 +88,13 @@ export function noteGenerator(
 	const isSystemPromptNode = (text: string) =>
 		text.trim().startsWith('SYSTEM PROMPT')
 
-	const getSystemPrompt = async (node: CanvasNode) => {
+	const getSystemPrompt = async (nodeData: CanvasNodeData) => {
+		const canvas = getActiveCanvas(app)
+		if (!canvas) return null
+
+		const node = canvas.nodes.get(nodeData.id)
+		if (!node) return null
+
 		let foundPrompt: string | null = null
 
 		await visitNoteAndAncestors(node, async (n: CanvasNode) => {
@@ -99,12 +105,17 @@ export function noteGenerator(
 			} else {
 				return true
 			}
-		})
+		},
+			getNodeParents
+		)
 
 		return foundPrompt || settings.systemPrompt
 	}
 
-	const buildMessages = async (node: CanvasNode) => {
+	const buildMessages = async (canvas: Canvas, nodeData: CanvasNodeData) => {
+		const node = canvas.nodes.get(nodeData.id)
+		if (!node) throw new Error('Node not found')
+
 		const encoding = encodingForModel(
 			(settings.apiModel || DEFAULT_SETTINGS.apiModel) as TiktokenModel
 		)
@@ -154,7 +165,7 @@ export function noteGenerator(
 				tokenCount += keptNodeTokens
 
 				const role: openai.ChatCompletionRequestMessageRoleEnum =
-					nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
+					(nodeData as CanvasNodeData as ChatStreamNodeData).chat_role === 'assistant' ? 'assistant' : 'user'
 
 				messages.unshift({
 					content: nodeText,
@@ -165,7 +176,7 @@ export function noteGenerator(
 			return shouldContinue
 		}
 
-		await visitNoteAndAncestors(node, visit)
+		await visitNoteAndAncestors<CanvasNode>(node, visit, getNodeParents)
 
 		if (messages.length) {
 			if (systemPrompt) {
@@ -194,8 +205,8 @@ export function noteGenerator(
 
 		await canvas.requestFrame()
 
-		const selection = canvas.selection
-		if (selection?.size !== 1) return false
+		const selection = canvas.getSelectionData().nodes
+		if (selection?.length !== 1) return false
 		const values = Array.from(selection.values())
 		const node = values[0]
 
@@ -204,7 +215,7 @@ export function noteGenerator(
 			await canvas.requestSave()
 			await sleep(200)
 
-			const { messages, tokenCount } = await buildMessages(node)
+			const { messages, tokenCount } = await buildMessages(canvas, node)
 			if (!messages.length) return false
 
 			const created = createNode(
@@ -256,10 +267,8 @@ export function noteGenerator(
 					y: created.y
 				})
 
-				const selectedNoteId =
-					canvas.selection?.size === 1
-						? Array.from(canvas.selection.values())?.[0]?.id
-						: undefined
+				const selection = canvas.getSelectionData().nodes
+				const selectedNoteId = selection.length === 1 ? selection[0].id : undefined
 
 				if (selectedNoteId === node?.id || selectedNoteId == null) {
 					// If the user has not changed selection, select the created node

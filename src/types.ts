@@ -1,6 +1,7 @@
 import { App, Command } from 'obsidian'
 import { ChatStreamSettings } from './settings/ChatStreamSettings'
 import { Logger } from './util/logging'
+import { CanvasNodeData } from './obsidian'
 
 export type Maybe<T> = T | null | undefined
 
@@ -18,6 +19,10 @@ export type ChatStreamEvent = {
 }
 
 export type ChatStreamEventHandler = (event: ChatStreamEvent) => Promise<unknown>
+
+export interface ChatStreamNodeData extends CanvasNodeData {
+    chat_role: 'user' | 'assistant'
+}
 
 export function eventKey(event: ChatStreamEventType) {
     if (event.type === 'command') {

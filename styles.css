@@ -1,3 +1,22 @@
+@keyframes gradientShift {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
+
+/* .loading-animation { */
+.canvas-node[data-node_state='running'] .canvas-node-container {
+	background-size: 200% 200%;
+	background-image: linear-gradient(45deg, #333 0%, #555 50%, #777 100%);
+	animation: gradientShift 1.5s ease infinite;
+}
+
 /*
 
 This CSS file will be included with your plugin, and

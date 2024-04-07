@@ -1,21 +1,18 @@
-import { App, ItemView } from 'obsidian'
-import { CanvasView } from './canvas-patches'
-import { CanvasNode } from './canvas-internal'
+import { Canvas, CanvasNode } from './canvas-internal'
 
 export type HasId = {
 	id: string
 }
 
-export type NodeVisitor = (node: HasId, depth: number) => Promise<boolean>
+export type NodeVisitor<T extends HasId> = (node: T, depth: number) => Promise<boolean>
 
 /**
  * Get parents for canvas note
  */
-export function getNoteParents(note: CanvasNode) {
-	const canvas = note.canvas
-	const parents = canvas
-		.getEdgesForNode(note)
-		.filter((edge) => edge.to.node.id === note.id)
+export function getNodeParents(node: CanvasNode) {
+	const parents = node.canvas
+		.getEdgesForNode(node)
+		.filter((edge) => edge.to.node.id === node.id)
 		.map((edge) => edge.from.node)
 	// Order left-to-right
 	parents.sort((a, b) => b.x - a.x)
@@ -25,11 +22,10 @@ export function getNoteParents(note: CanvasNode) {
 /**
  * Get children for canvas note
  */
-export function getNoteChildren(note: CanvasNode) {
-	const canvas = note.canvas
-	const children = canvas
-		.getEdgesForNode(note)
-		.filter((edge) => edge.from.node.id === note.id)
+export function getNodeChildren(node: CanvasNode) {
+	const children = node.canvas
+		.getEdgesForNode(node)
+		.filter((edge) => edge.from.node.id === node.id)
 		.map((edge) => edge.to.node)
 	// Order left-to-right
 	children.sort((a, b) => a.x - b.x)
@@ -39,8 +35,7 @@ export function getNoteChildren(note: CanvasNode) {
 /**
  * Get eddges pointing to note
  */
-export function inboundEdges(note: CanvasNode) {
-	const canvas = note.canvas
+export function inboundEdges(canvas: Canvas, note: CanvasNode) {
 	return canvas
 		.getEdgesForNode(note)
 		.filter((edge) => edge.to.node.id === note.id)
@@ -49,13 +44,13 @@ export function inboundEdges(note: CanvasNode) {
 /**
  * Visit node and ancestors breadth-first
  */
-export async function visitNoteAndAncestors(
-	start: { id: string },
-	visitor: NodeVisitor,
-	getParents: (node: HasId) => HasId[] = getNoteParents
+export async function visitNoteAndAncestors<TNode extends HasId>(
+	start: TNode,
+	visitor: NodeVisitor<TNode>,
+	getParents: (node: TNode) => TNode[]
 ) {
 	const visited = new Set<string>()
-	const queue: { node: HasId; depth: number }[] = [{ node: start, depth: 0 }]
+	const queue: { node: TNode; depth: number }[] = [{ node: start, depth: 0 }]
 
 	while (queue.length > 0) {
 		const { node: currentNote, depth } = queue.shift()!

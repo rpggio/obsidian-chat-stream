@@ -1,20 +1,11 @@
-import { ItemView } from 'obsidian'
-import { AllCanvasNodeData } from 'obsidian/canvas'
+import { AllCanvasNodeData, CanvasEdgeData, CanvasNodeData, NodeSide } from './canvas'
 import { randomHexString } from '../utils'
-import { Canvas, CanvasNode, CreateNodeOptions } from './canvas-internal'
+import { Canvas } from './canvas-internal'
+import { ChatStreamNodeData } from 'src/types'
 
-export interface CanvasEdgeIntermediate {
-	fromOrTo: string
-	side: string
-	node: CanvasElement
-}
-
-interface CanvasElement {
-	id: string
-}
-
-export type CanvasView = ItemView & {
-	canvas: Canvas
+export type EdgeAttachemnt = {
+	nodeId: string
+	side: NodeSide
 }
 
 /**
@@ -52,10 +43,10 @@ const minHeight = 60
  * For notes beyond a few lines, the note will have scroll bar.
  * Not a precise science, just something that is not surprising.
  */
-export const calcHeight = (options: { parentHeight: number; text: string }) => {
+export const calcHeight = (options: { parentHeight: number; text: string | undefined }) => {
 	const calcTextHeight = Math.round(
 		textPaddingHeight +
-			(pxPerLine * options.text.length) / (minWidth / pxPerChar)
+		(pxPerLine * (options.text?.length || 0)) / (minWidth / pxPerChar)
 	)
 	return Math.max(options.parentHeight, calcTextHeight)
 }
@@ -66,26 +57,31 @@ export const calcHeight = (options: { parentHeight: number; text: string }) => {
  */
 export const createNode = (
 	canvas: Canvas,
-	parentNode: CanvasNode,
-	nodeOptions: CreateNodeOptions,
-	nodeData?: Partial<AllCanvasNodeData>
+	parentNodeData: CanvasNodeData,
+	nodeOptions: { text: string, size?: { width?: number; height?: number } },
+	nodeData?: Partial<ChatStreamNodeData>
 ) => {
 	if (!canvas) {
 		throw new Error('Invalid arguments')
 	}
 
+	const parentNode = canvas.nodes.get(parentNodeData.id)
+	if (!parentNode) {
+		throw new Error('Parent node not found')
+	}
+
 	const { text } = nodeOptions
 	const width =
-		nodeOptions?.size?.width || Math.max(minWidth, parentNode?.width)
+		nodeOptions?.size?.width || Math.max(minWidth, parentNode.width || 0)
 	const height =
 		nodeOptions?.size?.height ||
 		Math.max(
 			minHeight,
-			parentNode && calcHeight({ text, parentHeight: parentNode.height })
+			calcHeight({ text, parentHeight: parentNode.height })
 		)
 
 	const siblings =
-		parent &&
+		parentNode &&
 		canvas
 			.getEdgesForNode(parentNode)
 			.filter((n) => n.from.node.id == parentNode.id)
@@ -95,9 +91,9 @@ export const createNode = (
 	const farLeft = parentNode.y - parentNode.width * 5
 	const siblingsRight = siblings?.length
 		? siblings.reduce(
-				(right, sib) => Math.max(right, sib.x + sib.width),
-				farLeft
-		  )
+			(right, sib) => Math.max(right, sib.x + sib.width),
+			farLeft
+		)
 		: undefined
 	const priorSibling = siblings[siblings.length - 1]
 
@@ -131,14 +127,12 @@ export const createNode = (
 		canvas,
 		randomHexString(16),
 		{
-			fromOrTo: 'from',
-			side: 'bottom',
-			node: parentNode
+			nodeId: parentNode.id,
+			side: 'bottom'
 		},
 		{
-			fromOrTo: 'to',
-			side: 'top',
-			node: newNode
+			nodeId: newNode.id,
+			side: 'top'
 		}
 	)
 
@@ -151,8 +145,8 @@ export const createNode = (
 export const addEdge = (
 	canvas: Canvas,
 	edgeID: string,
-	fromEdge: CanvasEdgeIntermediate,
-	toEdge: CanvasEdgeIntermediate
+	from: EdgeAttachemnt,
+	to: EdgeAttachemnt
 ) => {
 	if (!canvas) return
 
@@ -162,13 +156,13 @@ export const addEdge = (
 
 	canvas.importData({
 		edges: [
-			...data.edges,
+			...data.edges as CanvasEdgeData[],
 			{
 				id: edgeID,
-				fromNode: fromEdge.node.id,
-				fromSide: fromEdge.side,
-				toNode: toEdge.node.id,
-				toSide: toEdge.side
+				fromNode: from.nodeId,
+				fromSide: from.side,
+				toNode: to.nodeId,
+				toSide: to.side
 			}
 		],
 		nodes: data.nodes

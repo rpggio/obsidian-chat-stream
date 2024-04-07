@@ -1,7 +1,8 @@
 import { moment } from 'obsidian'
+import { CanvasNodeData } from 'src/obsidian/canvas'
 import { noteGenerator } from 'src/noteGenerator'
 
-import { CanvasNode, getActiveCanvas, getNoteChildren, inboundEdges, readNoteContent } from 'src/obsidian'
+import { Canvas, getActiveCanvas, getNodeChildren, inboundEdges, readNoteContent } from 'src/obsidian'
 import { Maybe, ModuleContext } from 'src/types'
 
 const templateSlotRegex = /\{\{\s*([\w-]+)\s*\}\}/g
@@ -9,12 +10,14 @@ const templateSlotRegex = /\{\{\s*([\w-]+)\s*\}\}/g
 export function TemplateExpansion(context: ModuleContext) {
     const generator = noteGenerator(context)
 
-    const isTemplate = (_: CanvasNode, content: string) => {
+    const isTemplate = (content: string) => {
         return content && content.match(templateSlotRegex) !== null
     }
 
-    const expandTemplate = async (note: CanvasNode, content: string) => {
-        const inbound = inboundEdges(note)
+    const expandTemplate = async (canvas: Canvas, noteData: CanvasNodeData, content: string) => {
+        const node = canvas.nodes.get(noteData.id)
+        if (!node) throw new Error('Node not found')
+        const inbound = inboundEdges(canvas, node)
 
         const vars = new Map<string, Maybe<string>>()
         for (const edge of inbound) {
@@ -26,7 +29,7 @@ export function TemplateExpansion(context: ModuleContext) {
 
         vars.set('date', moment().format('YYYY-MM-DD'))
         vars.set('time', moment().format('HH:mm:ss'))
-        vars.set('title', (note as any).file?.basename)
+        vars.set('title', (noteData as any).file?.basename)
 
         let changed = false
         const replaced = content.replace(templateSlotRegex, (match, name) => {
@@ -40,11 +43,11 @@ export function TemplateExpansion(context: ModuleContext) {
         })
 
         if (changed) {
-            const children = getNoteChildren(note)
+            const children = getNodeChildren(node)
             if (children.length === 1) {
                 // If single child, replace it
                 await children[0].setText(replaced)
-                await note.canvas.requestSave()
+                await canvas.requestSave()
             } else {
                 await generator.nextNote(replaced)
             }
@@ -57,17 +60,17 @@ export function TemplateExpansion(context: ModuleContext) {
         const canvas = getActiveCanvas(context.app)
         if (!canvas) return false
 
-        const selection = canvas.selection
-        if (selection?.size !== 1) return false
+        const selectedNodes = canvas.getSelectionData().nodes
+        if (selectedNodes.length !== 1) return false
+        const nodeData = selectedNodes[0]
+        const node = canvas.nodes.get(nodeData.id)
+        if (!node) return false
 
-        const values = Array.from(selection.values())
-        const note = values[0]
-
-        const content = await readNoteContent(note)
+        const content = await readNoteContent(node)
         if (!content) return false
 
-        if (isTemplate(note, content)) {
-            await expandTemplate(note, content)
+        if (isTemplate(content)) {
+            await expandTemplate(canvas, nodeData, content)
             return true
         }
 
