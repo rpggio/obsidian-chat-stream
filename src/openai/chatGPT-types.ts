@@ -42,7 +42,7 @@ export namespace openai {
 		 * @type {string}
 		 * @memberof ChatCompletionRequestMessage
 		 */
-		content: string
+		content: string | [{}]
 		/**
 		 * The name of the user in a multi-user chat
 		 * @type {string}

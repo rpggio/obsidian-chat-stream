@@ -40,10 +40,14 @@ export async function readNodeContent(node: CanvasNode) {
 		case 'file':
 			const file = app.vault.getAbstractFileByPath(nodeData.file)
 			if (file instanceof TFile) {
-				const body = await app.vault.read(file)
+				const ext = file.extension
 				if (node.subpath) {
 					return await readFileContent(app, file, nodeData.subpath)
+				} else if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
+					const fileBuffer = Buffer.from(await app.vault.adapter.readBinary(file.path))
+					return `data:image/${ext};base64,${fileBuffer.toString('base64')}`
 				} else {
+					const body = await app.vault.read(file)
 					return `## ${file.basename}\n${body}`
 				}
 			} else {
