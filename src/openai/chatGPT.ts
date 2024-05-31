@@ -20,6 +20,10 @@ export const CHAT_MODELS = {
 		name: 'gpt-3.5-turbo-1106',
 		tokenLimit: 16385
 	},
+	GPT_4o: {
+		name: 'gpt-4o',
+		tokenLimit: 128000
+	},
 	GPT_4: {
 		name: 'gpt-4',
 		tokenLimit: 8192
