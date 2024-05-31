@@ -125,8 +125,19 @@ export function noteGenerator(
 			const inputLimit = getTokenLimit(settings)
 
 			let shouldContinue = true
+			if (!nodeText) {
+				return shouldContinue
+			}
 
-			if (nodeText) {
+			if (nodeText.startsWith('data:image')) {
+				messages.unshift({
+					content: [{
+						'type': 'image_url',
+						'image_url': { 'url': nodeText }
+					}],
+					role: 'user'
+				})
+			} else {
 				if (isSystemPromptNode(nodeText)) return true
 
 				let nodeTokens = encoding.encode(nodeText)

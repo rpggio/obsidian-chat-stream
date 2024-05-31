@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   js-tiktoken:
-    specifier: ^1.0.10
-    version: 1.0.10
+    specifier: ^1.0.12
+    version: 1.0.12
 
 devDependencies:
   '@jest/globals':
@@ -2599,8 +2599,8 @@ packages:
       - ts-node
     dev: true
 
-  /js-tiktoken@1.0.10:
-    resolution: {integrity: sha512-ZoSxbGjvGyMT13x6ACo9ebhDha/0FHdKA+OsQcMOWcm1Zs7r90Rhk5lhERLzji+3rA7EKpXCgwXcM5fF3DMpdA==}
+  /js-tiktoken@1.0.12:
+    resolution: {integrity: sha512-L7wURW1fH9Qaext0VzaUDpFGVQgjkdE3Dgsy9/+yXyGEpBKnylTd0mU0bfbNkKDlXRb6TEsZkwuflu1B8uQbJQ==}
     dependencies:
       base64-js: 1.5.1
     dev: false
@@ -3457,7 +3457,7 @@ packages:
     prepare: true
     requiresBuild: true
     dependencies:
-      '@codemirror/state': 6.2.0
+      '@codemirror/state': 6.4.1
       '@codemirror/view': 6.26.0
       '@lezer/common': 1.2.1
       '@lezer/highlight': 1.2.0
