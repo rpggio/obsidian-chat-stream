@@ -24,6 +24,10 @@ export const CHAT_MODELS = {
 		name: 'gpt-4o',
 		tokenLimit: 128000
 	},
+	GPT_4o_MINI: {
+		name: 'gpt-4o-mini',
+		tokenLimit: 16384
+	},
 	GPT_4: {
 		name: 'gpt-4',
 		tokenLimit: 8192
