@@ -4,7 +4,9 @@ import { CanvasNode } from './obsidian/canvas-internal'
 import { CanvasView, calcHeight, createNode } from './obsidian/canvas-patches'
 import {
 	CHAT_MODELS,
+	ChatGPTModel,
 	chatModelByName,
+	ChatModelSettings,
 	getChatGPTCompletion
 } from './openai/chatGPT'
 import { openai } from './openai/chatGPT-types'
@@ -103,9 +105,7 @@ export function noteGenerator(
 	}
 
 	const buildMessages = async (node: CanvasNode) => {
-		const encoding = encodingForModel(
-			(settings.apiModel || DEFAULT_SETTINGS.apiModel) as TiktokenModel
-		)
+		const encoding = getEncoding(settings)
 
 		const messages: openai.ChatCompletionRequestMessage[] = []
 		let tokenCount = 0
@@ -284,6 +284,13 @@ export function noteGenerator(
 	}
 
 	return { nextNote, generateNote }
+}
+
+function getEncoding(settings: ChatStreamSettings) {
+	const model: ChatModelSettings | undefined = chatModelByName(settings.apiModel)
+	return encodingForModel(
+		(model?.encodingFrom || model?.name || DEFAULT_SETTINGS.apiModel) as TiktokenModel
+	)
 }
 
 function getTokenLimit(settings: ChatStreamSettings) {

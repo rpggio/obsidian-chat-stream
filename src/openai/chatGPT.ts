@@ -3,6 +3,12 @@ import { openai } from './chatGPT-types'
 
 export const OPENAI_COMPLETIONS_URL = `https://api.openai.com/v1/chat/completions`
 
+export type ChatModelSettings = {
+	name: string,
+	tokenLimit: number,
+	encodingFrom?: string
+}
+
 export const CHAT_MODELS = {
 	GPT_35_TURBO: {
 		name: 'gpt-3.5-turbo',
@@ -26,6 +32,7 @@ export const CHAT_MODELS = {
 	},
 	GPT_4o_MINI: {
 		name: 'gpt-4o-mini',
+		encodingFrom: 'gpt-4o',
 		tokenLimit: 16384
 	},
 	GPT_4: {
@@ -56,11 +63,9 @@ export const CHAT_MODELS = {
 		name: 'gpt-4-32k-0613',
 		tokenLimit: 32768
 	}
-} as const
+}
 
 export type ChatGPTModel = keyof typeof CHAT_MODELS
-
-export type ChatGPTModelType = keyof typeof CHAT_MODELS
 
 export function chatModelByName(name: string) {
 	return Object.values(CHAT_MODELS).find((model) => model.name === name)
