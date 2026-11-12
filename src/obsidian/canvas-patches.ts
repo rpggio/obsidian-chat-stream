@@ -64,11 +64,12 @@ export const calcHeight = (options: { parentHeight: number; text: string }) => {
  * Create new node as descendant from the parent node.
  * Align and offset relative to siblings.
  */
-export const createNode = (
+export const createNode = async (
 	canvas: Canvas,
 	parentNode: CanvasNode,
 	nodeOptions: CreateNodeOptions,
-	nodeData?: Partial<AllCanvasNodeData>
+	nodeData?: Partial<AllCanvasNodeData>,
+	clearSelection = true
 ) => {
 	if (!canvas) {
 		throw new Error('Invalid arguments')
@@ -85,14 +86,13 @@ export const createNode = (
 		)
 
 	const siblings =
-		parent &&
 		canvas
 			.getEdgesForNode(parentNode)
 			.filter((n) => n.from.node.id == parentNode.id)
 			.map((e) => e.to.node)
 
 	// Failsafe leftmost value.
-	const farLeft = parentNode.y - parentNode.width * 5
+	const farLeft = parentNode.x - parentNode.width * 5
 	const siblingsRight = siblings?.length
 		? siblings.reduce(
 				(right, sib) => Math.max(right, sib.x + sib.width),
@@ -124,10 +124,10 @@ export const createNode = (
 		newNode.setData(nodeData)
 	}
 
-	canvas.deselectAll()
+	if (clearSelection) canvas.deselectAll()
 	canvas.addNode(newNode)
 
-	addEdge(
+	await addEdge(
 		canvas,
 		randomHexString(16),
 		{
@@ -148,7 +148,7 @@ export const createNode = (
 /**
  * Add edge entry to canvas.
  */
-export const addEdge = (
+const addEdge = async (
 	canvas: Canvas,
 	edgeID: string,
 	fromEdge: CanvasEdgeIntermediate,
@@ -174,18 +174,5 @@ export const addEdge = (
 		nodes: data.nodes
 	})
 
-	canvas.requestFrame()
-}
-
-/**
- * Trap exception and write to console.error.
- */
-export function trapError<T>(fn: (...params: unknown[]) => T) {
-	return (...params: unknown[]) => {
-		try {
-			return fn(...params)
-		} catch (e) {
-			console.error(e)
-		}
-	}
+	await canvas.requestFrame()
 }

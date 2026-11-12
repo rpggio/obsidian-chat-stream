@@ -1,301 +1,103 @@
-import { TiktokenModel, encodingForModel } from 'js-tiktoken'
-import { App, ItemView, Notice } from 'obsidian'
-import { CanvasNode } from './obsidian/canvas-internal'
+import { App, ItemView, Modal, Notice } from 'obsidian'
+import { completeChat, getConnection } from './ai/chat'
+import { endpointFor } from './ai/connection'
+import { buildContext } from './context'
+import type { Canvas } from './obsidian/canvas-internal'
 import { CanvasView, calcHeight, createNode } from './obsidian/canvas-patches'
-import {
-	CHAT_MODELS,
-	ChatGPTModel,
-	chatModelByName,
-	ChatModelSettings,
-	getChatGPTCompletion
-} from './openai/chatGPT'
-import { openai } from './openai/chatGPT-types'
-import {
-	ChatStreamSettings,
-	DEFAULT_SETTINGS
-} from './settings/ChatStreamSettings'
-import { Logger } from './util/logging'
-import { visitNodeAndAncestors } from './obsidian/canvasUtil'
 import { readNodeContent } from './obsidian/fileUtil'
+import type { ChatStreamSettings } from './settings/ChatStreamSettings'
+import type { Logger } from './util/logging'
 
-/**
- * Color for assistant notes: 6 == purple
- */
-const assistantColor = '6'
+export function noteGenerator(app: App, settings: ChatStreamSettings, logDebug: Logger) {
+	const running = new WeakSet<Canvas>()
 
-/**
- * Height to use for placeholder note
- */
-const placeholderNoteHeight = 60
-
-/**
- * Height to use for new empty note
- */
-const emptyNoteHeight = 100
-
-export function noteGenerator(
-	app: App,
-	settings: ChatStreamSettings,
-	logDebug: Logger
-) {
-	const canCallAI = () => {
-		if (!settings.apiKey) {
-			new Notice('Please set your OpenAI API key in the plugin settings')
-			return false
-		}
-
-		return true
-	}
-
-	const nextNote = async () => {
-		logDebug('Creating user note')
-
-		const canvas = getActiveCanvas()
-		if (!canvas) {
-			logDebug('No active canvas')
+	function getSelection() {
+		const view = app.workspace.getActiveViewOfType(ItemView)
+		const canvas = view?.getViewType() === 'canvas' ? (view as CanvasView).canvas : undefined
+		if (canvas?.selection.size !== 1) {
+			new Notice('Select one card in an Obsidian Canvas.')
 			return
 		}
+		const node = [...canvas.selection][0]
+		return { canvas, node }
+	}
 
-		await canvas.requestFrame()
+	async function nextNote() {
+		const selected = getSelection()
+		if (!selected) return
+		const { canvas, node } = selected
+		const created = await createNode(canvas, node, { text: '', size: { height: 100 } })
+		canvas.selectOnly(created, true)
+		await canvas.requestSave()
+		// The Canvas editor mounts on a later render after inserting the card.
+		await sleep(100)
+		if (canvas.selection.has(created) && !created.isEditing) created.startEditing()
+	}
 
-		const selection = canvas.selection
-		if (selection?.size !== 1) return
-		const values = Array.from(selection.values()) as CanvasNode[]
-		const node = values[0]
-
-		if (node) {
-			const created = createNode(canvas, node, {
-				text: '',
-				size: { height: emptyNoteHeight }
+	async function generateNote() {
+		const selected = getSelection()
+		if (!selected) return
+		const { canvas, node } = selected
+		if (running.has(canvas)) {
+			new Notice('Chat Stream is already generating a reply for this canvas.')
+			return
+		}
+		running.add(canvas)
+		try {
+			const options = { ...settings }
+			const connection = getConnection(app, options)
+			const messages = await buildContext(node, options, readNodeContent)
+			if (!messages.length) {
+				new Notice('The selected branch has no readable chat context.')
+				return
+			}
+			new Notice(`Generating a reply using ${connection.destination}…`)
+			logDebug('Generating reply', { messageCount: messages.length })
+			const response = await completeChat(connection, messages, {
+				maxResponseTokens: options.maxResponseTokens,
+				temperature: options.temperature ?? undefined
 			})
-			canvas.selectOnly(created, true /* startEditing */)
-
-			// startEditing() doesn't work if called immediately
+			const activeView = app.workspace.getActiveViewOfType(ItemView) as CanvasView | null
+			if (!app.workspace.getLeavesOfType('canvas').some(leaf => (leaf.view as CanvasView).canvas === canvas)
+				|| !canvas.getData().nodes.some(current => current.id === node.id)) {
+				new Notice('The original Canvas card is unavailable. The reply was discarded.')
+				return
+			}
+			const shouldSelect = activeView?.canvas === canvas && canvas.selection.has(node)
+			const created = await createNode(canvas, node, {
+				text: response,
+				size: { height: calcHeight({ text: response, parentHeight: node.height }) }
+			}, { color: '6', chat_role: 'assistant' }, shouldSelect)
+			if (shouldSelect) canvas.selectOnly(created, false)
 			await canvas.requestSave()
-			await sleep(100)
-
-			created.startEditing()
+		} catch (error) {
+			new Notice(error instanceof Error ? error.message : 'Chat Stream could not generate a reply.')
+		} finally {
+			running.delete(canvas)
 		}
 	}
 
-	const getActiveCanvas = () => {
-		const maybeCanvasView = app.workspace.getActiveViewOfType(
-			ItemView
-		) as CanvasView | null
-		return maybeCanvasView ? maybeCanvasView['canvas'] : null
-	}
-
-	const isSystemPromptNode = (text: string) =>
-		text.trim().startsWith('SYSTEM PROMPT')
-
-	const getSystemPrompt = async (node: CanvasNode) => {
-		let foundPrompt: string | null = null
-
-		await visitNodeAndAncestors(node, async (n: CanvasNode) => {
-			const text = await readNodeContent(n)
-			if (text && isSystemPromptNode(text)) {
-				foundPrompt = text
-				return false
-			} else {
-				return true
-			}
-		})
-
-		return foundPrompt || settings.systemPrompt
-	}
-
-	const buildMessages = async (node: CanvasNode) => {
-		const encoding = getEncoding(settings)
-
-		const messages: openai.ChatCompletionRequestMessage[] = []
-		let tokenCount = 0
-
-		// Note: We are not checking for system prompt longer than context window.
-		// That scenario makes no sense, though.
-		const systemPrompt = await getSystemPrompt(node)
-		if (systemPrompt) {
-			tokenCount += encoding.encode(systemPrompt).length
-		}
-
-		const visit = async (node: CanvasNode, depth: number) => {
-			if (settings.maxDepth && depth > settings.maxDepth) return false
-
-			const nodeData = node.getData()
-			let nodeText = (await readNodeContent(node))?.trim() || ''
-			const inputLimit = getTokenLimit(settings)
-
-			let shouldContinue = true
-			if (!nodeText) {
-				return shouldContinue
-			}
-
-			if (nodeText.startsWith('data:image')) {
-				messages.unshift({
-					content: [{
-						'type': 'image_url',
-						'image_url': { 'url': nodeText }
-					}],
-					role: 'user'
-				})
-			} else {
-				if (isSystemPromptNode(nodeText)) return true
-
-				let nodeTokens = encoding.encode(nodeText)
-				let keptNodeTokens: number
-
-				if (tokenCount + nodeTokens.length > inputLimit) {
-					// will exceed input limit
-
-					shouldContinue = false
-
-					// Leaving one token margin, just in case
-					const keepTokens = nodeTokens.slice(0, inputLimit - tokenCount - 1)
-					const truncateTextTo = encoding.decode(keepTokens).length
-					logDebug(
-						`Truncating node text from ${nodeText.length} to ${truncateTextTo} characters`
-					)
-					nodeText = nodeText.slice(0, truncateTextTo)
-					keptNodeTokens = keepTokens.length
-				} else {
-					keptNodeTokens = nodeTokens.length
-				}
-
-				tokenCount += keptNodeTokens
-
-				const role: openai.ChatCompletionRequestMessageRoleEnum =
-					nodeData.chat_role === 'assistant' ? 'assistant' : 'user'
-
-				messages.unshift({
-					content: nodeText,
-					role
-				})
-			}
-
-			return shouldContinue
-		}
-
-		await visitNodeAndAncestors(node, visit)
-
-		if (messages.length) {
-			if (systemPrompt) {
-				messages.unshift({
-					content: systemPrompt,
-					role: 'system'
-				})
-			}
-
-			return { messages, tokenCount }
-		} else {
-			return { messages: [], tokenCount: 0 }
+	async function previewContext() {
+		const selected = getSelection()
+		if (!selected) return
+		const options = { ...settings }
+		try {
+			const messages = await buildContext(selected.node, options, readNodeContent)
+			const destination = CHAT_STREAM_DEV && options.provider === 'demo' ? 'Offline demo (on this device)' : endpointFor(options).host
+			const modal = new Modal(app)
+			modal.setTitle('Chat Stream context')
+			modal.contentEl.createEl('p', { text: `Destination: ${destination}. Preview sends no request.` })
+			modal.contentEl.createEl('pre', {
+				cls: 'chat-stream-context',
+				text: messages.map(message => `${message.role.toUpperCase()}\n${
+					typeof message.content === 'string' ? message.content : '[Image attachment]'
+				}`).join('\n\n') || 'No readable context.'
+			})
+			modal.open()
+		} catch (error) {
+			new Notice(error instanceof Error ? error.message : 'Chat Stream could not preview the context.')
 		}
 	}
 
-	const generateNote = async () => {
-		if (!canCallAI()) return
-
-		logDebug('Creating AI note')
-
-		const canvas = getActiveCanvas()
-		if (!canvas) {
-			logDebug('No active canvas')
-			return
-		}
-
-		await canvas.requestFrame()
-
-		const selection = canvas.selection
-		if (selection?.size !== 1) return
-		const values = Array.from(selection.values())
-		const node = values[0]
-
-		if (node) {
-			// Last typed characters might not be applied to note yet
-			await canvas.requestSave()
-			await sleep(200)
-
-			const { messages, tokenCount } = await buildMessages(node)
-			if (!messages.length) return
-
-			const created = createNode(
-				canvas,
-				node,
-				{
-					text: `Calling AI (${settings.apiModel})...`,
-					size: { height: placeholderNoteHeight }
-				},
-				{
-					color: assistantColor,
-					chat_role: 'assistant'
-				}
-			)
-
-			new Notice(
-				`Sending ${messages.length} notes with ${tokenCount} tokens to GPT`
-			)
-
-			try {
-				logDebug('messages', messages)
-
-				const generated = await getChatGPTCompletion(
-					settings.apiKey,
-					settings.apiUrl,
-					settings.apiModel,
-					messages,
-					{
-						max_tokens: settings.maxResponseTokens || undefined,
-						temperature: settings.temperature
-					}
-				)
-
-				if (generated == null) {
-					new Notice(`Empty or unreadable response from GPT`)
-					canvas.removeNode(created)
-					return
-				}
-
-				created.setText(generated)
-				const height = calcHeight({
-					text: generated,
-					parentHeight: node.height
-				})
-				created.moveAndResize({
-					height,
-					width: created.width,
-					x: created.x,
-					y: created.y
-				})
-
-				const selectedNoteId =
-					canvas.selection?.size === 1
-						? Array.from(canvas.selection.values())?.[0]?.id
-						: undefined
-
-				if (selectedNoteId === node?.id || selectedNoteId == null) {
-					// If the user has not changed selection, select the created node
-					canvas.selectOnly(created, false /* startEditing */)
-				}
-			} catch (error) {
-				new Notice(`Error calling GPT: ${error.message || error}`)
-				canvas.removeNode(created)
-			}
-
-			await canvas.requestSave()
-		}
-	}
-
-	return { nextNote, generateNote }
-}
-
-function getEncoding(settings: ChatStreamSettings) {
-	const model: ChatModelSettings | undefined = chatModelByName(settings.apiModel)
-	return encodingForModel(
-		(model?.encodingFrom || model?.name || DEFAULT_SETTINGS.apiModel) as TiktokenModel
-	)
-}
-
-function getTokenLimit(settings: ChatStreamSettings) {
-	const model = chatModelByName(settings.apiModel) || CHAT_MODELS.GPT_35_TURBO_0125
-	return settings.maxInputTokens
-		? Math.min(settings.maxInputTokens, model.tokenLimit)
-		: model.tokenLimit
+	return { nextNote, generateNote, previewContext }
 }

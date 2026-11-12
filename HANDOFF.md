@@ -1,0 +1,16 @@
+# Chat Stream handoff
+
+The next implementation should use the **AI Providers community plugin and its published `@obsidian-ai-providers/sdk`** for provider setup, model discovery, and inference. The owner chose this to avoid maintaining our own provider catalog and API compatibility layer. Keep Chat Stream focused on branching conversations in native Canvas. Production should have no offline demo. This session leaves the SDK integration for the next session.
+
+## Context for the next pass
+
+- The 1.5.0 work is a local, unpublished baseline. It currently calls Chat Completions directly. The latest pass folded custom servers into an optional endpoint override, moved the offline demo behind a dev-build flag, and switched new hosted defaults to GPT-5.6 Luna. Preserve the Canvas commands and stored `chat_role` metadata. Earlier releases stored a plaintext key, and the local 1.5.0 work moved it into Obsidian Secret Storage. Check the SDK's provider migration path before deciding how to carry existing setups forward.
+- The [SDK README](https://github.com/pfrankov/obsidian-ai-providers/blob/master/packages/sdk/README.md) covers service initialization, message-based execution, model discovery, and version negotiation. Its reasoning modes are declared per model in AI Providers settings. Let that configuration drive what Chat Stream offers, and omit effort for the provider default. The SDK also documents what to show when the companion plugin is missing or too old.
+- The [public Scorecard](https://community.obsidian.md/plugins/chat-stream#scorecard) still rates the published 1.4.8 release. It flagged the old pnpm lockfile, the over-5-MB bundle, the extra release ZIP, missing attestations, and lint findings. The local release workflow and 2.35 MB build address those items. A preview scan and published-release verification remain pending.
+
+## Local verification notes
+
+- The clean fixture is `test-vault/`. The disposable sibling vault is `/Users/dev/projects/chat-stream/chat-stream-demo`. Obsidian 1.15.1 is installed at `/Users/dev/Applications/Obsidian.app`. Its CLI exists inside the bundle but was disabled. Copying the three build files into the test vault and toggling Chat Stream off/on in Community plugins worked without a hot-reload plugin.
+- The disposable vault already maps **Option+Shift+P/G/N** to Preview context, Generate AI note, and Create next note. The left branch should include Field notes and the right branch should exclude it. A generated assistant card, its edge, and a typed follow-up survived reopening the Canvas. The declared minimum of 1.11.5 has yet to be smoke-tested.
+- Doppler has `OPENROUTER_API_KEY` and `OPENAI_API_KEY` in project `obsidian-tools`, config `dev_personal`. `doppler run` needed host keyring access outside the sandbox. Both keys worked in the prior app test, and both accepted GPT-5.6 Luna in direct API smoke calls. Temporary copies in the test vault were cleared. The latest build passed 11 tests and the production demo exclusion check. The revised settings screen still needs an app check.
+- `validation/chat-stream-walkthrough.mp4` is a captioned sequence of real Obsidian screenshots from the earlier UI. The host recorder couldn't capture the display, so it is a frame-based walkthrough. It predates the endpoint override and production demo removal.

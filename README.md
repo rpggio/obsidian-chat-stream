@@ -1,55 +1,34 @@
-# Chat Stream 	🔀
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rpggio/obsidian-chat-stream?style=for-the-badge&sort=semver) [![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22chat-stream%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&style=for-the-badge)](https://obsidian.md/plugins?search=chat%20stream)
+# Chat Stream
 
-An Obsidian plugin for conversing with GPT AI via canvas notes. Ancestor notes/files are included in the chat context. You can quickly create chat streams, and control what other notes are sent to the AI.
+Branch an AI conversation on Obsidian Canvas. Select a card, generate a reply, and return to any earlier card to explore another direction. The arrows determine the conversation context.
 
-<img src="static/chat-stream-example.gif"/>
+## Try it in two minutes
 
-## Install
+1. Install **Chat Stream** from Community plugins on Obsidian Desktop 1.11.5 or newer and enable the Canvas core plugin. To test a development build, see [CONTRIBUTING.md](CONTRIBUTING.md).
+2. Copy [the sample Canvas and its Markdown notes](test-vault) into a vault. Open **Weekend plan.canvas**.
+3. Select the left question card and run **Chat Stream: Preview context** from the command palette. The preview shows the linked field notes and the cards on that branch.
+4. Connect a provider using the steps below, then run **Chat Stream: Generate AI note**. Select the purple reply and run **Chat Stream: Create next note** to continue. Select an earlier card to start another branch.
 
-Install as [community plugin](https://obsidian.md/plugins?search=chat%20stream#)
+Assign your preferred shortcuts under **Settings → Hotkeys**. Search for Chat Stream to find all three commands.
 
-Or, add `rpggio/obsidian-chat-stream` to [BRAT](https://github.com/TfTHacker/obsidian42-brat).
+## Connect an AI provider
 
-Chat Stream is supported only on desktop.
+| Provider | Setup |
+| --- | --- |
+| OpenRouter | Create a key in your OpenRouter account, choose or add it in the API key picker, and enter an OpenRouter model ID. |
+| OpenAI | Create a key in your OpenAI API account, choose or add it in the API key picker, and enter an OpenAI model ID. |
 
-## Setup
+Leave **Endpoint override** blank to use the preset. For Ollama, LM Studio, or another compatible service, enter its OpenAI-compatible base URL (including any API version path) or the full `/chat/completions` URL and its model ID. Choose a key if your server requires one.
 
-Add an [OpenAI API key](https://platform.openai.com/account/api-keys) in Chat Stream settings.
+Click **Test connection** before generating. Use a model that supports chat and, if using image cards, accepts image input. Leave temperature blank to use the provider's default. The text input budget is approximate across providers, and images count toward provider limits separately.
 
-## Usage
+### Network, privacy, and cost
 
-1. Select a note in the canvas
-2. Press Alt+Shift+G to generate new note from GPT using current note + ancestors
-3. To create next note for responding, press Alt+Shift+N.
+- Preview context sends no request.
+- Generation sends the system prompt, selected card, and included ancestor text, linked Markdown sections, and supported images to the configured endpoint. The built-in presets use `openrouter.ai` and `api.openai.com`. OpenRouter can route requests to the model provider you select.
+- Test connection sends a short synthetic prompt to the same endpoint. Hosted services require a provider account and may charge for test calls and generation. Chat Stream is free.
+- Keys are stored in Obsidian Secret Storage. On upgrade, the plugin moves the old key out of its settings file. If a previously used key appeared in shared logs or backups, rotate it with the provider.
 
-AI notes are colored purple, and tagged with `chat_role=assistant` in the canvas data file.
+## Contribute
 
-## Development
-
-1. Download source and install dependencies
-   ```
-	pnpm install
-	```
-2. In Obsidian, install and enable [hot reload plugin](https://github.com/pjeby/hot-reload)
-3. Create symbolic link from this project dir to an Obsidian store 
-   ```
-	ln -s . your-obsidian-store/.obsidian/plugins/chat-stream
-	```
-4. Start dev server
-	```
-	pnpm run dev
-	```
-5. In Obsidian, enable Chat Stream Plugin and add OpenAI key in plugin settings.
-
-Changes to code should automatically be loaded into Obsidian.
-
-## Attribution
-
-* Canvas plugin code from [Canvas MindMap](https://github.com/Quorafind/Obsidian-Canvas-MindMap)
-
-## Say thanks
-
-If you love it you can send me a [coffee thumbs-up](https://bmc.link/ryanp) so I know folks find it useful.
-
-<a href="https://www.buymeacoffee.com/ryanp"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=ryanp&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff" /></a>
+See [CONTRIBUTING.md](CONTRIBUTING.md) for build and test instructions. The original Canvas integration drew on [Canvas MindMap](https://github.com/Quorafind/Obsidian-Canvas-MindMap). Chat Stream is [MIT licensed](LICENSE).

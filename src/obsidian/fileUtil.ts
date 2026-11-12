@@ -1,57 +1,27 @@
 import { App, TFile, resolveSubpath } from 'obsidian'
-import { CanvasNode } from './canvas-internal'
+import type { CanvasNode } from './canvas-internal'
 
-export async function readFileContent(
-	app: App,
-	file: TFile,
-	subpath?: string | undefined
-) {
+async function readFileContent(app: App, file: TFile, subpath: string) {
+	const cache = app.metadataCache.getFileCache(file)
+	const resolved = cache && resolveSubpath(cache, subpath)
+	if (!resolved) throw new Error('A linked heading or block could not be resolved. Check the Canvas link.')
 	const body = await app.vault.read(file)
-
-	if (subpath) {
-		const cache = app.metadataCache.getFileCache(file)
-		if (cache) {
-			const resolved = resolveSubpath(cache, subpath)
-			if (!resolved) {
-				console.warn('Failed to get subpath', { file, subpath })
-				return body
-			}
-			if (resolved.start || resolved.end) {
-				const subText = body.slice(resolved.start.offset, resolved.end?.offset)
-				if (subText) {
-					return subText
-				} else {
-					console.warn('Failed to get subpath', { file, subpath })
-					return body
-				}
-			}
-		}
-	}
-
-	return body
+	return body.slice(resolved.start.offset, resolved.end?.offset)
 }
 
 export async function readNodeContent(node: CanvasNode) {
-	const app = node.app
 	const nodeData = node.getData()
-	switch (nodeData.type) {
-		case 'text':
-			return nodeData.text
-		case 'file':
-			const file = app.vault.getAbstractFileByPath(nodeData.file)
-			if (file instanceof TFile) {
-				const ext = file.extension
-				if (node.subpath) {
-					return await readFileContent(app, file, nodeData.subpath)
-				} else if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
-					const fileBuffer = Buffer.from(await app.vault.adapter.readBinary(file.path))
-					return `data:image/${ext};base64,${fileBuffer.toString('base64')}`
-				} else {
-					const body = await app.vault.read(file)
-					return `## ${file.basename}\n${body}`
-				}
-			} else {
-				console.debug('Cannot read from file type', file)
-			}
+	if (nodeData.type === 'text') return nodeData.text
+	if (nodeData.type !== 'file') return
+
+	const app = node.app
+	const file = app.vault.getFileByPath(nodeData.file)
+	if (!file || !(file instanceof TFile)) return
+	if (nodeData.subpath) return readFileContent(app, file, nodeData.subpath)
+	if (['png', 'jpg', 'jpeg'].includes(file.extension)) {
+		const image = Buffer.from(await app.vault.readBinary(file))
+		const mime = file.extension === 'png' ? 'image/png' : 'image/jpeg'
+		return `data:${mime};base64,${image.toString('base64')}`
 	}
+	if (file.extension === 'md') return `## ${file.basename}\n${await app.vault.read(file)}`
 }

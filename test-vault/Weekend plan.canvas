@@ -1,0 +1,85 @@
+{
+	"nodes": [
+		{
+			"id": "1111111111111111",
+			"type": "text",
+			"x": -180,
+			"y": -260,
+			"width": 330,
+			"height": 120,
+			"text": "## Saturday outdoors\nHelp me plan an easy afternoon."
+		},
+		{
+			"id": "2222222222222222",
+			"type": "file",
+			"file": "Field notes.md",
+			"x": -585,
+			"y": -85,
+			"width": 330,
+			"height": 190
+		},
+		{
+			"id": "3333333333333333",
+			"type": "text",
+			"x": -585,
+			"y": 160,
+			"width": 330,
+			"height": 120,
+			"text": "Using the field notes, suggest an afternoon plan in three bullets."
+		},
+		{
+			"id": "4444444444444444",
+			"type": "text",
+			"x": 235,
+			"y": 160,
+			"width": 330,
+			"height": 120,
+			"text": "What should I pack for a short walk in light rain?"
+		},
+		{
+			"id": "5555555555555555",
+			"type": "text",
+			"x": 235,
+			"y": 340,
+			"width": 330,
+			"height": 120,
+			"text": "**Example reply**\nBring a light rain shell, shoes with grip, and a dry bag for your phone.",
+			"color": "6",
+			"chat_role": "assistant"
+		}
+	],
+	"edges": [
+		{
+			"id": "6666666666666666",
+			"fromNode": "1111111111111111",
+			"fromSide": "bottom",
+			"toNode": "2222222222222222",
+			"toSide": "top",
+			"toEnd": "arrow"
+		},
+		{
+			"id": "7777777777777777",
+			"fromNode": "2222222222222222",
+			"fromSide": "bottom",
+			"toNode": "3333333333333333",
+			"toSide": "top",
+			"toEnd": "arrow"
+		},
+		{
+			"id": "8888888888888888",
+			"fromNode": "1111111111111111",
+			"fromSide": "bottom",
+			"toNode": "4444444444444444",
+			"toSide": "top",
+			"toEnd": "arrow"
+		},
+		{
+			"id": "9999999999999999",
+			"fromNode": "4444444444444444",
+			"fromSide": "bottom",
+			"toNode": "5555555555555555",
+			"toSide": "top",
+			"toEnd": "arrow"
+		}
+	]
+}

@@ -1,72 +1,48 @@
-import { Plugin, App, PluginManifest } from 'obsidian'
-import {
-	ChatStreamSettings,
-	DEFAULT_SETTINGS
-} from './settings/ChatStreamSettings'
+import { Notice, Plugin } from 'obsidian'
+import type { ChatStreamSettings } from './settings/ChatStreamSettings'
+import { migrateSettings, type StoredSettings } from './settings/migrateSettings'
 import SettingsTab from './settings/SettingsTab'
-import { Logger } from './util/logging'
 import { noteGenerator } from './noteGenerator'
 
-/**
- * Obsidian plugin implementation.
- * Note: Canvas has no supported API. This plugin uses internal APIs that may change without notice.
- */
 export class ChatStreamPlugin extends Plugin {
 	settings: ChatStreamSettings
-	logDebug: Logger
-
-	constructor(app: App, pluginManifest: PluginManifest, pluginPath: string) {
-		super(app, pluginManifest)
-	}
+	private pendingSave = Promise.resolve()
 
 	async onload() {
-		await this.loadSettings()
+		const { settings, changed } = migrateSettings((await this.loadData()) as StoredSettings | null, this.app.secretStorage)
+		this.settings = settings
+		if (changed) await this.saveData(settings)
 
-		this.logDebug = this.settings.debug
-			? (message?: unknown, ...optionalParams: unknown[]) =>
-					console.debug('Chat Stream: ' + message, ...optionalParams)
-			: () => {}
-
-		this.logDebug('Debug logging enabled')
-
-		const generator = noteGenerator(this.app, this.settings, this.logDebug)
-
+		const generator = noteGenerator(this.app, settings, (message, ...details) => {
+			if (settings.debug) console.debug('Chat Stream:', message, ...details)
+		})
 		this.addSettingTab(new SettingsTab(this.app, this))
 
 		this.addCommand({
 			id: 'next-note',
 			name: 'Create next note',
-			callback: () => {
-				generator.nextNote()
-			},
-			hotkeys: [
-				{
-					modifiers: ['Alt', 'Shift'],
-					key: 'N'
-				}
-			]
+			callback: () => this.runCommand(generator.nextNote)
 		})
-
 		this.addCommand({
 			id: 'generate-note',
 			name: 'Generate AI note',
-			callback: () => {
-				generator.generateNote()
-			},
-			hotkeys: [
-				{
-					modifiers: ['Alt', 'Shift'],
-					key: 'G'
-				}
-			]
+			callback: () => this.runCommand(generator.generateNote)
+		})
+		this.addCommand({
+			id: 'preview-context',
+			name: 'Preview context',
+			callback: () => this.runCommand(generator.previewContext)
 		})
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
+	persistSettings(): void {
+		const snapshot = { ...this.settings }
+		this.pendingSave = this.pendingSave
+			.then(() => this.saveData(snapshot))
+			.catch(() => { new Notice('Chat Stream could not save its settings.') })
 	}
 
-	async saveSettings() {
-		await this.saveData(this.settings)
+	private runCommand(command: () => Promise<void>): void {
+		void command().catch(() => { new Notice('Chat Stream could not complete the Canvas command.') })
 	}
 }

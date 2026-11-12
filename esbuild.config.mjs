@@ -1,4 +1,4 @@
-import builtins from "builtin-modules"
+import { builtinModules } from "node:module"
 import esbuild from "esbuild"
 import process from "process"
 
@@ -11,7 +11,7 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === "production")
 
-const context = await esbuild.context({
+const options = {
 	banner: {
 		js: banner,
 	},
@@ -31,18 +31,24 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
-		...builtins],
+		...builtinModules],
 	format: "cjs",
 	target: "es2018",
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
+	minifyWhitespace: prod,
+	minifySyntax: prod,
+	define: { CHAT_STREAM_DEV: JSON.stringify(!prod) },
+	metafile: prod,
 	treeShaking: true,
 	outfile: "main.js",
-})
+}
 
 if (prod) {
-	await context.rebuild()
-	process.exit(0)
+	const result = await esbuild.build(options)
+	const bytes = result.metafile.outputs["main.js"].bytes
+	if (bytes >= 5_000_000) throw new Error(`Plugin bundle exceeds the 5 MB budget (${bytes} bytes)`)
 } else {
+	const context = await esbuild.context(options)
 	await context.watch()
 }

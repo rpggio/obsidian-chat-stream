@@ -1,10 +1,8 @@
-import { CanvasNode } from 'src/obsidian/canvas-internal'
+import { CanvasNode } from './canvas-internal'
 
 export type HasId = {
 	id: string
 }
-
-export type NodeVisitor = (node: HasId, depth: number) => Promise<boolean>
 
 /**
  * Get parents for canvas node
@@ -23,13 +21,14 @@ export function nodeParents(node: CanvasNode) {
 /**
  * Visit node and ancestors breadth-first
  */
-export async function visitNodeAndAncestors(
-	start: { id: string },
-	visitor: NodeVisitor,
-	getNodeParents: (node: HasId) => HasId[] = nodeParents
+export async function visitNodeAndAncestors<Node extends HasId>(
+	start: Node,
+	visitor: (node: Node, depth: number) => Promise<boolean>,
+	getNodeParents: (node: Node) => Node[],
+	maxDepth = Infinity
 ) {
 	const visited = new Set<string>()
-	const queue: { node: HasId; depth: number }[] = [{ node: start, depth: 0 }]
+	const queue: { node: Node; depth: number }[] = [{ node: start, depth: 0 }]
 
 	while (queue.length > 0) {
 		const { node: currentNode, depth } = queue.shift()!
@@ -43,6 +42,8 @@ export async function visitNodeAndAncestors(
 		}
 
 		visited.add(currentNode.id)
+
+		if (depth >= maxDepth) continue
 
 		const parents = getNodeParents(currentNode)
 		for (const parent of parents) {
