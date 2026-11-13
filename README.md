@@ -35,7 +35,7 @@ For your own conversation, start with a text card on any Canvas. Add context by 
 
 ### Known limitations
 
-- Open **Chat Stream** from the settings sidebar under **Community plugins**. Its settings do not appear in Obsidian's settings search.
+- Open **Chat Stream** from the settings sidebar under **Community plugins**. On Obsidian 1.13 or newer, you can also find its options using settings search.
 - Some OpenRouter models can return `<think>` blocks. Chat Stream saves them as part of the reply, so they can also be included in later branch context.
 
 ## Contribute

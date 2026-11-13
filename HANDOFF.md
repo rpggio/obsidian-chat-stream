@@ -14,16 +14,14 @@ Chat Stream now delegates provider configuration, model discovery, and inference
 
 ## Verified in this session
 
-- Reviewed the plugin against [Obsidian’s plugin checklist](https://docs.obsidian.md/oo/plugin) and [developer policies](https://docs.obsidian.md/community-directory/developer-policies). Confirmed the desktop manifest, command IDs, plugin settings and vault APIs, provider disclosures, and release assets. Added third-party MIT notices to the release bundle. The official lint rules report the single settings search warning below.
+- Reviewed the plugin against [Obsidian’s plugin checklist](https://docs.obsidian.md/oo/plugin) and [developer policies](https://docs.obsidian.md/community-directory/developer-policies). Confirmed the desktop manifest, command IDs, plugin settings and vault APIs, provider disclosures, and release assets. Added third-party MIT notices to the release bundle. The settings tab uses shared row definitions for search on Obsidian 1.13+ and for rendering on older versions.
 - On Obsidian 1.15.1, captured both settings screenshots, added an LM Studio connection through AI Providers, and selected it in Chat Stream. The loopback server returned a reply for one model and rejected another. Chat Stream showed a notice for the rejection and added no card.
 - Previewed both branches: only the left one included Field notes. Created and edited a follow-up using its assigned hotkey. After reopening the Canvas, the purple assistant card, its role, and both new edges were present. Used the Obsidian CLI to focus and select fixture cards and to invoke the preview and successful generation commands; entry and follow-up editing used the normal UI. Hosted generation was not repeated for this pass.
 
 ## Known limitations
 
-- Chat Stream settings do not appear in Obsidian's settings search. Open the **Chat Stream** tab from the settings sidebar. The plugin uses the settings API supported by its current minimum Obsidian version.
 - OpenRouter can include `<think>` blocks in saved replies. They become part of subsequent context when that reply is on the selected branch.
 
 ## Onboarding follow-ups
 
 - Consider offering a one-click sample Canvas in the vault. Keep the current copyable sample as a fallback.
-- For a larger settings pass, consider searchable settings once the compatibility tradeoff is worthwhile.
