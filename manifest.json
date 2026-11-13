@@ -2,7 +2,7 @@
 	"id": "chat-stream",
 	"name": "Chat Stream",
 	"version": "1.5.0",
-	"minAppVersion": "1.11.5",
+	"minAppVersion": "1.13.0",
 	"description": "Create branching AI chats using Canvas cards.",
 	"author": "Ryan P Smith",
 	"authorUrl": "https://github.com/rpggio",

@@ -4,7 +4,7 @@ Branch an AI conversation on Obsidian Canvas. Select a card, generate a reply, a
 
 ## Get started
 
-Install [Chat Stream](https://community.obsidian.md/plugins/chat-stream) from Community plugins on Obsidian Desktop 1.11.5 or newer, and enable the **Canvas** core plugin. To try a development build, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Install [Chat Stream](https://community.obsidian.md/plugins/chat-stream) from Community plugins on Obsidian Desktop 1.13.0 or newer, and enable the **Canvas** core plugin. To try a development build, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Connect a provider
 

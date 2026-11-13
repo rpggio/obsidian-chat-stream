@@ -30,8 +30,7 @@ export default class SettingsTab extends PluginSettingTab {
 		const save = () => this.plugin.persistSettings()
 		const refresh = () => {
 			save()
-			if (typeof this.update === 'function') this.update()
-			else this.renderLegacySettings()
+			this.update()
 		}
 		const findProvider = (ai: Awaited<ReturnType<typeof getAIProviders>>) =>
 			ai.providers.find(provider => provider.id === settings.providerId)
@@ -146,24 +145,5 @@ export default class SettingsTab extends PluginSettingTab {
 				} }
 			]
 		}]
-	}
-
-	// Obsidian 1.11 and 1.12 render the same rows through the legacy API.
-	display(): void {
-		this.renderLegacySettings()
-	}
-
-	private renderLegacySettings(): void {
-		const { containerEl } = this
-		containerEl.empty()
-		for (const group of this.getSettingDefinitions()) {
-			new Setting(containerEl).setName(group.heading).setHeading()
-			for (const definition of group.items) {
-				const row = new Setting(containerEl).setName(definition.name)
-				if (definition.desc) row.setDesc(definition.desc)
-				// Render callbacks use only the row, so this also works without SettingGroup.
-				;(definition.render as (setting: Setting) => void)(row)
-			}
-		}
 	}
 }
