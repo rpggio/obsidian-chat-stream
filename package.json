@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-chat-stream",
-	"version": "1.5.0",
+	"version": "2.0.0",
 	"description": "Create branching AI chats using Obsidian Canvas",
 	"main": "main.js",
 	"scripts": {

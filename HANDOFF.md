@@ -1,4 +1,4 @@
-# Chat Stream 1.5.0 release handoff
+# Chat Stream 2.0.0 release handoff
 
 Chat Stream now delegates provider configuration, model discovery, and inference to AI Providers (1.13.0+) via its SDK. This release is prepared locally and has not been tagged or published.
 
@@ -10,7 +10,7 @@ Chat Stream now delegates provider configuration, model discovery, and inference
 
 1. Run the checks in [CONTRIBUTING.md](CONTRIBUTING.md), including a smoke test on the declared minimum Obsidian desktop version (1.13.0). Chat Stream uses internal Canvas APIs to add and connect cards in the active view, so lint and unit tests alone cannot establish version compatibility.
 2. Commit the release candidate and push a branch to `rpggio/obsidian-chat-stream`. Sign in to [Obsidian Community](https://community.obsidian.md/) as the Chat Stream owner. Open **Plugins → Chat Stream → Review branch**, enter the final candidate commit SHA, and select **Run preview scan**. Save the result with the release notes and resolve any blocking findings. The browser was signed out during release prep, and the local changes were not on GitHub, so the official preview has not run.
-3. Tag the scanned commit `1.5.0` after the scan passes. The tag workflow builds, tests, and publishes the three attested assets: `main.js`, `manifest.json`, and `styles.css`. Include the upgrade note above and check the [public Scorecard](https://community.obsidian.md/plugins/chat-stream#scorecard) after the directory picks up the release. The current public scorecard covers 1.4.8.
+3. Tag the scanned commit `2.0.0` after the scan passes. The tag workflow builds, tests, and publishes the three attested assets: `main.js`, `manifest.json`, and `styles.css`. Include the upgrade note above and check the [public Scorecard](https://community.obsidian.md/plugins/chat-stream#scorecard) after the directory picks up the release. The current public scorecard covers 1.4.8.
 
 ## Verified in this session
 

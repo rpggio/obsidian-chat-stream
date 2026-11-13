@@ -8,7 +8,7 @@ Install [Chat Stream](https://community.obsidian.md/plugins/chat-stream) from Co
 
 ### Connect a provider
 
-> **Upgrading to 1.5.0:** Configure your connection in **AI Providers**, then select it again in **Chat Stream**. Chat Stream does not transfer its old endpoint, API key, or model selection. Existing Canvas cards, assistant roles, and saved conversation preferences carry over.
+> **Upgrading to 2.0.0:** Configure your connection in **AI Providers**, then select it again in **Chat Stream**. Chat Stream does not transfer its old endpoint, API key, or model selection. Existing Canvas cards, assistant roles, and saved conversation preferences carry over.
 
 1. Install and enable [AI Providers](https://community.obsidian.md/plugins/ai-providers) 1.13.0 or newer in the same vault.
 2. Open **Settings → AI Providers**. Click **Add provider (+)**, choose a provider type, fill in its connection details, and choose a default chat model. Use **Refresh models list** in the connection editor if your model is missing, then save the connection.
