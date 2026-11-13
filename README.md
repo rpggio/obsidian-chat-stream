@@ -2,9 +2,17 @@
 
 Branch an AI conversation on Obsidian Canvas. Select a card, generate a reply, and return to any earlier card to explore another direction. Incoming arrows determine what goes into the conversation.
 
-## Get started
+![Animated example of Chat Stream generating a reply and branching a conversation on Obsidian Canvas](https://rpggio.github.io/media/chat-stream-example.gif)
 
-Install [Chat Stream](https://community.obsidian.md/plugins/chat-stream) from Community plugins on Obsidian Desktop 1.13.0 or newer, and enable the **Canvas** core plugin. To try a development build, see [CONTRIBUTING.md](CONTRIBUTING.md).
+## Usage
+
+Open or create a Canvas in your vault, select a text card with a question, and press **Alt+Shift+G** (**Option+Shift+G** on Mac) after assigning it to **Chat Stream: Generate AI note** in **Settings → Hotkeys**. Chat Stream adds a purple reply connected to that card. Select an earlier card and generate again to start another branch.
+
+You can also run **Chat Stream: Generate AI note** from the command palette.
+
+## Setup
+
+In your vault on Obsidian Desktop 1.13.0 or newer, go to **Settings → Community plugins → Browse**, then install and enable [Chat Stream](https://community.obsidian.md/plugins/chat-stream). Check that **Canvas** is enabled under **Settings → Core plugins**.
 
 ### Connect a provider
 
@@ -19,21 +27,25 @@ Install [Chat Stream](https://community.obsidian.md/plugins/chat-stream) from Co
 
    ![Chat Stream settings, showing the Provider and Model dropdowns filled in](static/chat-stream-settings.png)
 
-### Try a branch
+## Commands and hotkeys
 
-1. Copy [the sample Canvas and its Markdown notes](test-vault) into the root of a test vault. Open **Weekend plan.canvas**.
-2. Select the left question card and run **Chat Stream: Preview context** from the command palette. The preview includes **Field notes**; the right branch does not. You can preview before setting up a provider.
-3. Run **Chat Stream: Generate AI note** to create a purple reply connected to the selected card. Select the reply, run **Chat Stream: Create next note**, and type a follow-up. To branch, return to an earlier card and generate again.
+Find these commands in the command palette under **Chat Stream**. To set shortcuts, go to **Settings → Hotkeys** and search for Chat Stream.
 
-For your own conversation, start with a text card on any Canvas. Add context by drawing an arrow from a text card, Markdown file card, or supported image card toward the question. Assign shortcuts under **Settings → Hotkeys** by searching for Chat Stream. If you used the old default shortcuts, you can assign them there.
+| Command | What it does | Suggested shortcut (Windows / macOS) |
+| --- | --- | --- |
+| **Generate AI note** | Adds a reply to the selected card using its branch as context. | Alt+Shift+G / Option+Shift+G |
+| **Create next note** | Adds a connected card for your follow-up. | Alt+Shift+N / Option+Shift+N |
+| **Preview context** | Shows what would be sent without making a request. | Alt+Shift+P / Option+Shift+P |
 
-### Network, privacy, and cost
+To give a question more context, draw an arrow from a text card or Markdown note toward it. Run **Preview context** on the question to see what Chat Stream will include.
+
+## Network, privacy, and cost
 
 - **Preview context** works locally. **Generate AI note** sends the system prompt and included Canvas text, linked Markdown content, and supported images (PNG or JPEG) to the endpoint configured in AI Providers. Check the preview before sending private material.
 - AI Providers manages connections and credentials. Hosted providers generally require an account or API key and may charge for generation. Local providers require a running local model server.
 - Use a model that supports vision for image cards. The text budget is approximate; images count toward provider limits separately.
 
-### Known limitations
+## Known limitations
 
 - Open **Chat Stream** from the settings sidebar under **Community plugins**. On Obsidian 1.13 or newer, you can also find its options using settings search.
 - Some OpenRouter models can return `<think>` blocks. Chat Stream saves them as part of the reply, so they can also be included in later branch context.
