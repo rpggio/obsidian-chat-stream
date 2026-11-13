@@ -1,6 +1,5 @@
-import { App, Notice, PluginSettingTab, SecretComponent, Setting } from 'obsidian'
-import { completeChat, getConnection } from '../ai/chat'
-import { endpointValue, Provider, PROVIDERS, sameOrigin } from '../ai/connection'
+import { App, PluginSettingTab, Setting } from 'obsidian'
+import { chatModels, getAIProviders, providersPluginLink, reasoningModes } from '../ai/chat'
 import type { ChatStreamPlugin } from '../ChatStreamPlugin'
 import type { ChatStreamSettings } from './ChatStreamSettings'
 
@@ -15,24 +14,7 @@ export default class SettingsTab extends PluginSettingTab {
 		const { settings } = plugin
 		containerEl.empty()
 
-		new Setting(containerEl)
-			.setName('Provider')
-			.setDesc('Choose a provider preset. Use the endpoint override for another compatible server.')
-			.addDropdown(dropdown => {
-				for (const [id, provider] of Object.entries(PROVIDERS)) dropdown.addOption(id, provider.label)
-				if (CHAT_STREAM_DEV) dropdown.addOption('demo', 'Offline demo')
-				dropdown.setValue(settings.provider).onChange(value => {
-					const provider = value as Provider
-					settings.provider = provider
-					settings.endpointOverride = ''
-					settings.apiModel = provider === 'demo' ? '' : PROVIDERS[provider].model
-					settings.secretName = ''
-					plugin.persistSettings()
-					this.display()
-				})
-			})
-
-		if (settings.provider !== 'demo') this.showConnection(settings)
+		void this.showConnection(containerEl.createDiv(), settings)
 
 		new Setting(containerEl)
 			.setName('System prompt')
@@ -74,73 +56,81 @@ export default class SettingsTab extends PluginSettingTab {
 			}))
 	}
 
-	private showConnection(settings: ChatStreamSettings): void {
-		const { containerEl, plugin } = this
-		let secretPicker: SecretComponent
-		const provider = settings.provider
-		if (provider === 'demo') return
+	private async showConnection(container: HTMLElement, settings: ChatStreamSettings): Promise<void> {
+		const connection = new Setting(container).setName('AI Providers')
+		const describe = (message: string) => {
+			const description = createFragment()
+			description.append(message, ' ')
+			description.createEl('a', { text: 'AI Providers plugin page', href: providersPluginLink })
+			connection.setDesc(description)
+		}
+		describe('Add providers and refresh models in Settings → AI Providers.')
 
-		new Setting(containerEl)
-			.setName('Endpoint override')
-			.setDesc('Leave blank for the provider preset, or enter a compatible base URL or chat completions URL.')
-			.addText(text => {
-				text.inputEl.addClass('chat-stream-endpoint')
-				text.setPlaceholder(PROVIDERS[provider].endpoint).setValue(settings.endpointOverride).onChange(value => {
-					const previous = endpointValue(settings)
-					settings.endpointOverride = value
-					if (!sameOrigin(previous, endpointValue(settings))) {
-						settings.secretName = ''
-						secretPicker.setValue('')
-					}
-					plugin.persistSettings()
+		try {
+			const ai = await getAIProviders(this.app)
+			if (!ai.providers.length) {
+				describe('No providers are configured in this vault. In Settings → AI Providers, choose Add provider and save a connection. Then return to Chat Stream to select it.')
+				return
+			}
+
+			const provider = ai.providers.find(candidate => candidate.id === settings.providerId)
+			new Setting(container)
+				.setName('Provider')
+				.setDesc('Choose a connection saved in Settings → AI Providers.')
+				.addDropdown(dropdown => {
+					dropdown.addOption('', 'Select a provider')
+					for (const candidate of ai.providers) dropdown.addOption(candidate.id, candidate.name)
+					dropdown.setValue(provider?.id ?? '').onChange(value => {
+						settings.providerId = value
+						settings.modelId = ''
+						settings.reasoningMode = ''
+						this.plugin.persistSettings()
+						this.display()
+					})
+				})
+			if (!provider) return
+
+			const models = chatModels(ai, provider)
+			const model = settings.modelId || provider.model
+			const validModel = model && models.includes(model) ? model : undefined
+			const defaultModel = provider.model && models.includes(provider.model) ? provider.model : undefined
+			const modelSetting = new Setting(container).setName('Model')
+			if (!models.length) {
+				modelSetting.setDesc('Choose a chat model or refresh the model list in AI Providers.')
+				return
+			}
+			if (!validModel) modelSetting.setDesc('Choose an available chat model.')
+			modelSetting.addDropdown(dropdown => {
+				dropdown.addOption('', defaultModel ? `Provider default (${defaultModel})` : 'Select a model')
+				for (const id of models) dropdown.addOption(id, id)
+				if (settings.modelId && !validModel) {
+					dropdown.addOption(settings.modelId, `Unavailable (${settings.modelId})`)
+				}
+				dropdown.setValue(settings.modelId).onChange(value => {
+					settings.modelId = value
+					settings.reasoningMode = ''
+					this.plugin.persistSettings()
+					this.display()
 				})
 			})
+			if (!validModel) return
+			const modes = reasoningModes(ai, provider, validModel)
+			if (!modes.length) return
 
-		new Setting(containerEl)
-			.setName('Model ID')
-			.setDesc('Use the exact ID from your provider.')
-			.addText(text => text.setValue(settings.apiModel).onChange(value => {
-				settings.apiModel = value
-				plugin.persistSettings()
-			}))
-
-		const keyDescription = createFragment()
-		keyDescription.append('Stored in Obsidian Secret Storage. Leave unlinked for a compatible server that needs no key. ')
-		if (provider === 'openai' || provider === 'openrouter') {
-			keyDescription.createEl('a', {
-				text: 'Create an API key',
-				href: provider === 'openai' ? 'https://platform.openai.com/api-keys' : 'https://openrouter.ai/settings/keys'
-			})
+			new Setting(container)
+				.setName('Reasoning effort')
+				.addDropdown(dropdown => {
+					dropdown.addOption('', 'Provider default')
+					for (const mode of modes) dropdown.addOption(mode, mode)
+					dropdown.setValue(modes.includes(settings.reasoningMode) ? settings.reasoningMode : '')
+						.onChange(value => {
+							settings.reasoningMode = value
+							this.plugin.persistSettings()
+						})
+				})
+		} catch (error) {
+			describe(error instanceof Error ? error.message : 'AI Providers is unavailable.')
 		}
-		new Setting(containerEl)
-			.setName('API key')
-			.setDesc(keyDescription)
-			.addComponent(el => {
-				secretPicker = new SecretComponent(this.app, el)
-					.setValue(settings.secretName)
-					.onChange(value => {
-						settings.secretName = value ?? ''
-						plugin.persistSettings()
-					})
-				return secretPicker
-			})
-
-		new Setting(containerEl)
-			.setName('Connection')
-			.setDesc('Sends a short test prompt to the configured endpoint. It may incur provider charges.')
-			.addButton(button => button.setButtonText('Test connection').onClick(async () => {
-				button.setDisabled(true)
-				try {
-					const connection = getConnection(this.app, settings)
-					await completeChat(connection, [{ role: 'user', content: 'Reply with OK.' }], { maxResponseTokens: 1024 })
-					new Notice(`Chat Stream connected to ${connection.destination}.`)
-				} catch (error) {
-					new Notice(error instanceof Error ? error.message : 'Could not test the connection.')
-				} finally {
-					button.setDisabled(false)
-				}
-			}))
-
 	}
 
 	private showLimit(name: string, description: string, key: 'maxInputTokens' | 'maxResponseTokens' | 'maxDepth') {

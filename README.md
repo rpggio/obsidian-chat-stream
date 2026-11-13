@@ -7,27 +7,24 @@ Branch an AI conversation on Obsidian Canvas. Select a card, generate a reply, a
 1. Install **Chat Stream** from Community plugins on Obsidian Desktop 1.11.5 or newer and enable the Canvas core plugin. To test a development build, see [CONTRIBUTING.md](CONTRIBUTING.md).
 2. Copy [the sample Canvas and its Markdown notes](test-vault) into a vault. Open **Weekend plan.canvas**.
 3. Select the left question card and run **Chat Stream: Preview context** from the command palette. The preview shows the linked field notes and the cards on that branch.
-4. Connect a provider using the steps below, then run **Chat Stream: Generate AI note**. Select the purple reply and run **Chat Stream: Create next note** to continue. Select an earlier card to start another branch.
+4. Set up AI Providers using the steps below, then run **Chat Stream: Generate AI note**. Select the purple reply and run **Chat Stream: Create next note** to continue. Select an earlier card to start another branch.
 
 Assign your preferred shortcuts under **Settings → Hotkeys**. Search for Chat Stream to find all three commands.
 
 ## Connect an AI provider
 
-| Provider | Setup |
-| --- | --- |
-| OpenRouter | Create a key in your OpenRouter account, choose or add it in the API key picker, and enter an OpenRouter model ID. |
-| OpenAI | Create a key in your OpenAI API account, choose or add it in the API key picker, and enter an OpenAI model ID. |
+1. Install and enable [AI Providers](https://community.obsidian.md/plugins/ai-providers) 1.13.0 or newer in the same vault.
+2. In **Settings → AI Providers**, add a provider, configure its connection, and choose a model. Use **Refresh models list** to update the available models.
+3. In **Settings → Chat Stream**, select the provider. Use its default model or choose another discovered chat model. If the model has reasoning modes declared in AI Providers, Chat Stream offers those modes and a provider-default option.
 
-Leave **Endpoint override** blank to use the preset. For Ollama, LM Studio, or another compatible service, enter its OpenAI-compatible base URL (including any API version path) or the full `/chat/completions` URL and its model ID. Choose a key if your server requires one.
-
-Click **Test connection** before generating. Use a model that supports chat and, if using image cards, accepts image input. Leave temperature blank to use the provider's default. The text input budget is approximate across providers, and images count toward provider limits separately.
+Upgrading from an earlier version? Set up the connection in AI Providers and select it in Chat Stream. Existing Canvas cards, assistant roles, and context preferences carry over.
 
 ### Network, privacy, and cost
 
 - Preview context sends no request.
-- Generation sends the system prompt, selected card, and included ancestor text, linked Markdown sections, and supported images to the configured endpoint. The built-in presets use `openrouter.ai` and `api.openai.com`. OpenRouter can route requests to the model provider you select.
-- Test connection sends a short synthetic prompt to the same endpoint. Hosted services require a provider account and may charge for test calls and generation. Chat Stream is free.
-- Keys are stored in Obsidian Secret Storage. On upgrade, the plugin moves the old key out of its settings file. If a previously used key appeared in shared logs or backups, rotate it with the provider.
+- Generation passes the system prompt, selected card, and included ancestor text, linked Markdown sections, and supported images to the provider configured in AI Providers.
+- Use a model that supports vision for image cards. The input budget is approximate, and images count toward provider limits separately.
+- AI Providers manages connection settings and API keys. Hosted providers may charge for generation.
 
 ## Contribute
 

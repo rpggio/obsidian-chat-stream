@@ -1,6 +1,6 @@
 import { Tiktoken } from 'js-tiktoken/lite'
 import ranks from 'js-tiktoken/ranks/o200k_base'
-import type { ChatMessage } from './ai/chat'
+import type { IChatMessage } from '@obsidian-ai-providers/sdk'
 import type { CanvasNode } from './obsidian/canvas-internal'
 import { nodeParents, visitNodeAndAncestors } from './obsidian/canvasUtil'
 import type { ChatStreamSettings } from './settings/ChatStreamSettings'
@@ -13,8 +13,8 @@ export async function buildContext(
 	selected: CanvasNode,
 	settings: Pick<ChatStreamSettings, 'maxDepth' | 'maxInputTokens' | 'systemPrompt'>,
 	readNode: (node: CanvasNode) => Promise<string | undefined>
-): Promise<ChatMessage[]> {
-	const inputs: { role: ChatMessage['role']; text: string }[] = []
+): Promise<IChatMessage[]> {
+	const inputs: { role: IChatMessage['role']; text: string }[] = []
 	let systemPrompt: string | undefined
 	await visitNodeAndAncestors(selected, async node => {
 		const text = (await readNode(node))?.trim()
@@ -34,7 +34,7 @@ export async function buildContext(
 	if (prompt) remaining -= encode(prompt).length
 	if (remaining <= 0) throw new Error('The system prompt uses the full input budget. Shorten it or increase the limit.')
 
-	const messages: ChatMessage[] = []
+	const messages: IChatMessage[] = []
 	for (const { role, text } of inputs) {
 		if (remaining <= 0) break
 		if (text.startsWith('data:image/')) {

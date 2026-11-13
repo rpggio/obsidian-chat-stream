@@ -1,6 +1,5 @@
 import { App, ItemView, Modal, Notice } from 'obsidian'
-import { completeChat, getConnection } from './ai/chat'
-import { endpointFor } from './ai/connection'
+import { completeChat, getAIProviders, resolveChat } from './ai/chat'
 import { buildContext } from './context'
 import type { Canvas } from './obsidian/canvas-internal'
 import { CanvasView, calcHeight, createNode } from './obsidian/canvas-patches'
@@ -9,7 +8,7 @@ import type { ChatStreamSettings } from './settings/ChatStreamSettings'
 import type { Logger } from './util/logging'
 
 export function noteGenerator(app: App, settings: ChatStreamSettings, logDebug: Logger) {
-	const running = new WeakSet<Canvas>()
+	const running = new Map<Canvas, AbortController>()
 
 	function getSelection() {
 		const view = app.workspace.getActiveViewOfType(ItemView)
@@ -42,21 +41,30 @@ export function noteGenerator(app: App, settings: ChatStreamSettings, logDebug: 
 			new Notice('Chat Stream is already generating a reply for this canvas.')
 			return
 		}
-		running.add(canvas)
+		const controller = new AbortController()
+		running.set(canvas, controller)
 		try {
 			const options = { ...settings }
-			const connection = getConnection(app, options)
+			const ai = await getAIProviders(app)
+			const chat = resolveChat(ai, options)
 			const messages = await buildContext(node, options, readNodeContent)
 			if (!messages.length) {
 				new Notice('The selected branch has no readable chat context.')
 				return
 			}
-			new Notice(`Generating a reply using ${connection.destination}…`)
+			if (controller.signal.aborted) return
+			new Notice(`Generating a reply with ${chat.provider.name} · ${chat.model}…`)
 			logDebug('Generating reply', { messageCount: messages.length })
-			const response = await completeChat(connection, messages, {
-				maxResponseTokens: options.maxResponseTokens,
-				temperature: options.temperature ?? undefined
-			})
+			let response: string
+			try {
+				response = await completeChat(ai, chat, messages, options, controller)
+			} catch {
+				if (!controller.signal.aborted) {
+					new Notice(`No reply from ${chat.provider.name}. Check the provider and model in AI Providers settings.`)
+				}
+				return
+			}
+			if (controller.signal.aborted) return
 			const activeView = app.workspace.getActiveViewOfType(ItemView) as CanvasView | null
 			if (!app.workspace.getLeavesOfType('canvas').some(leaf => (leaf.view as CanvasView).canvas === canvas)
 				|| !canvas.getData().nodes.some(current => current.id === node.id)) {
@@ -83,10 +91,16 @@ export function noteGenerator(app: App, settings: ChatStreamSettings, logDebug: 
 		const options = { ...settings }
 		try {
 			const messages = await buildContext(selected.node, options, readNodeContent)
-			const destination = CHAT_STREAM_DEV && options.provider === 'demo' ? 'Offline demo (on this device)' : endpointFor(options).host
+			let destination = 'Choose a provider and model in Chat Stream settings.'
+			try {
+				const { provider, model } = resolveChat(await getAIProviders(app), options)
+				destination = `Provider: ${provider.name} · ${model}.`
+			} catch {
+				// Context preview remains available before provider setup.
+			}
 			const modal = new Modal(app)
 			modal.setTitle('Chat Stream context')
-			modal.contentEl.createEl('p', { text: `Destination: ${destination}. Preview sends no request.` })
+			modal.contentEl.createEl('p', { text: `${destination} Preview sends no request.` })
 			modal.contentEl.createEl('pre', {
 				cls: 'chat-stream-context',
 				text: messages.map(message => `${message.role.toUpperCase()}\n${
@@ -99,5 +113,9 @@ export function noteGenerator(app: App, settings: ChatStreamSettings, logDebug: 
 		}
 	}
 
-	return { nextNote, generateNote, previewContext }
+	function abortRequests() {
+		for (const controller of running.values()) controller.abort()
+	}
+
+	return { nextNote, generateNote, previewContext, abortRequests }
 }

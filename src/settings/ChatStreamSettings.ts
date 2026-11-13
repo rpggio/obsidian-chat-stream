@@ -1,6 +1,7 @@
-import { ConnectionSettings, PROVIDERS } from '../ai/connection'
-
-export interface ChatStreamSettings extends ConnectionSettings {
+export interface ChatStreamSettings {
+	providerId: string
+	modelId: string
+	reasoningMode: string
 	temperature: number | null
 	systemPrompt: string
 	debug: boolean
@@ -10,10 +11,9 @@ export interface ChatStreamSettings extends ConnectionSettings {
 }
 
 export const DEFAULT_SETTINGS: ChatStreamSettings = {
-	provider: 'openrouter',
-	endpointOverride: '',
-	apiModel: PROVIDERS.openrouter.model,
-	secretName: '',
+	providerId: '',
+	modelId: '',
+	reasoningMode: '',
 	temperature: null,
 	systemPrompt: 'Help the user think through their question. Be brief.',
 	debug: false,

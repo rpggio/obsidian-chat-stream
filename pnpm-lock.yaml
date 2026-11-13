@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@obsidian-ai-providers/sdk':
+        specifier: 1.9.0
+        version: 1.9.0(obsidian@1.14.4(@codemirror/state@6.7.6)(@codemirror/view@6.43.13))
       js-tiktoken:
         specifier: ^1.0.21
         version: 1.0.21
@@ -563,6 +566,11 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       eslint: ^9
+
+  '@obsidian-ai-providers/sdk@1.9.0':
+    resolution: {integrity: sha512-X4rkqBrXnfM6n0gPZ6afB6dQVFtCCAGa3vU21BKCmhedfyH0okYAbIMN3iqarOm2YXWxz6wIdOl2OgRyYt7vCw==}
+    peerDependencies:
+      obsidian: latest
 
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
@@ -2944,6 +2952,10 @@ snapshots:
       eslint-plugin-n: 17.10.3(eslint@9.39.5)
       eslint-plugin-react: 7.37.3(eslint@9.39.5)
       eslint-plugin-security: 1.4.0
+
+  '@obsidian-ai-providers/sdk@1.9.0(obsidian@1.14.4(@codemirror/state@6.7.6)(@codemirror/view@6.43.13))':
+    dependencies:
+      obsidian: 1.14.4(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)
 
   '@rtsao/scc@1.1.0': {}
 

@@ -1,6 +1,7 @@
+import { initAI } from '@obsidian-ai-providers/sdk'
 import { Notice, Plugin } from 'obsidian'
 import type { ChatStreamSettings } from './settings/ChatStreamSettings'
-import { migrateSettings, type StoredSettings } from './settings/migrateSettings'
+import { migrateSettings } from './settings/migrateSettings'
 import SettingsTab from './settings/SettingsTab'
 import { noteGenerator } from './noteGenerator'
 
@@ -9,13 +10,16 @@ export class ChatStreamPlugin extends Plugin {
 	private pendingSave = Promise.resolve()
 
 	async onload() {
-		const { settings, changed } = migrateSettings((await this.loadData()) as StoredSettings | null, this.app.secretStorage)
+		const { settings, changed } = migrateSettings((await this.loadData()) as Partial<ChatStreamSettings> | null)
 		this.settings = settings
 		if (changed) await this.saveData(settings)
 
 		const generator = noteGenerator(this.app, settings, (message, ...details) => {
 			if (settings.debug) console.debug('Chat Stream:', message, ...details)
 		})
+		// Keep Canvas commands and settings usable while the companion is unavailable.
+		await initAI(this.app, this, async () => {}, { disableFallback: true })
+		this.register(generator.abortRequests)
 		this.addSettingTab(new SettingsTab(this.app, this))
 
 		this.addCommand({

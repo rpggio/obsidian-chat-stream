@@ -3,10 +3,6 @@
 	min-height: 5rem;
 }
 
-.chat-stream-endpoint {
-	width: min(20rem, 100%);
-}
-
 .chat-stream-context {
 	max-height: 55vh;
 	overflow: auto;

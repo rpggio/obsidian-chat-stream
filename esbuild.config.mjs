@@ -38,7 +38,6 @@ const options = {
 	sourcemap: prod ? false : "inline",
 	minifyWhitespace: prod,
 	minifySyntax: prod,
-	define: { CHAT_STREAM_DEV: JSON.stringify(!prod) },
 	metafile: prod,
 	treeShaking: true,
 	outfile: "main.js",
