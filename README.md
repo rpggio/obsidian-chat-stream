@@ -1,31 +1,43 @@
 # Chat Stream
 
-Branch an AI conversation on Obsidian Canvas. Select a card, generate a reply, and return to any earlier card to explore another direction. The arrows determine the conversation context.
+Branch an AI conversation on Obsidian Canvas. Select a card, generate a reply, and return to any earlier card to explore another direction. Incoming arrows determine what goes into the conversation.
 
-## Try it in two minutes
+## Get started
 
-1. Install **Chat Stream** from Community plugins on Obsidian Desktop 1.11.5 or newer and enable the Canvas core plugin. To test a development build, see [CONTRIBUTING.md](CONTRIBUTING.md).
-2. Copy [the sample Canvas and its Markdown notes](test-vault) into a vault. Open **Weekend plan.canvas**.
-3. Select the left question card and run **Chat Stream: Preview context** from the command palette. The preview shows the linked field notes and the cards on that branch.
-4. Set up AI Providers using the steps below, then run **Chat Stream: Generate AI note**. Select the purple reply and run **Chat Stream: Create next note** to continue. Select an earlier card to start another branch.
+Install [Chat Stream](https://community.obsidian.md/plugins/chat-stream) from Community plugins on Obsidian Desktop 1.11.5 or newer, and enable the **Canvas** core plugin. To try a development build, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Assign your preferred shortcuts under **Settings → Hotkeys**. Search for Chat Stream to find all three commands.
+### Connect a provider
 
-## Connect an AI provider
+> **Upgrading to 1.5.0:** Configure your connection in **AI Providers**, then select it again in **Chat Stream**. Chat Stream does not transfer its old endpoint, API key, or model selection. Existing Canvas cards, assistant roles, and saved conversation preferences carry over.
 
 1. Install and enable [AI Providers](https://community.obsidian.md/plugins/ai-providers) 1.13.0 or newer in the same vault.
-2. In **Settings → AI Providers**, add a provider, configure its connection, and choose a model. Use **Refresh models list** to update the available models.
-3. In **Settings → Chat Stream**, select the provider. Use its default model or choose another discovered chat model. If the model has reasoning modes declared in AI Providers, Chat Stream offers those modes and a provider-default option.
+2. Open **Settings → AI Providers**. Click **Add provider (+)**, choose a provider type, fill in its connection details, and choose a default chat model. Use **Refresh models list** in the connection editor if your model is missing, then save the connection.
 
-Upgrading from an earlier version? Set up the connection in AI Providers and select it in Chat Stream. Existing Canvas cards, assistant roles, and context preferences carry over.
+   ![AI Providers settings, showing the Add provider button and two saved connections](static/ai-providers-settings.png)
+
+3. Open **Settings → Chat Stream**. Choose the saved connection under **Provider** and keep its default model or pick a different **Model**. If AI Providers lists reasoning modes for the selected model, you can also choose a **Reasoning effort**.
+
+   ![Chat Stream settings, showing the Provider and Model dropdowns filled in](static/chat-stream-settings.png)
+
+### Try a branch
+
+1. Copy [the sample Canvas and its Markdown notes](test-vault) into the root of a test vault. Open **Weekend plan.canvas**.
+2. Select the left question card and run **Chat Stream: Preview context** from the command palette. The preview includes **Field notes**; the right branch does not. You can preview before setting up a provider.
+3. Run **Chat Stream: Generate AI note** to create a purple reply connected to the selected card. Select the reply, run **Chat Stream: Create next note**, and type a follow-up. To branch, return to an earlier card and generate again.
+
+For your own conversation, start with a text card on any Canvas. Add context by drawing an arrow from a text card, Markdown file card, or supported image card toward the question. Assign shortcuts under **Settings → Hotkeys** by searching for Chat Stream. If you used the old default shortcuts, you can assign them there.
 
 ### Network, privacy, and cost
 
-- Preview context sends no request.
-- Generation passes the system prompt, selected card, and included ancestor text, linked Markdown sections, and supported images to the provider configured in AI Providers.
-- Use a model that supports vision for image cards. The input budget is approximate, and images count toward provider limits separately.
-- AI Providers manages connection settings and API keys. Hosted providers may charge for generation.
+- **Preview context** works locally. **Generate AI note** sends the system prompt and included Canvas text, linked Markdown content, and supported images (PNG or JPEG) to the endpoint configured in AI Providers. Check the preview before sending private material.
+- AI Providers manages connections and credentials. Hosted providers generally require an account or API key and may charge for generation. Local providers require a running local model server.
+- Use a model that supports vision for image cards. The text budget is approximate; images count toward provider limits separately.
+
+### Known limitations
+
+- Open **Chat Stream** from the settings sidebar under **Community plugins**. Its settings do not appear in Obsidian's settings search.
+- Some OpenRouter models can return `<think>` blocks. Chat Stream saves them as part of the reply, so they can also be included in later branch context.
 
 ## Contribute
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for build and test instructions. The original Canvas integration drew on [Canvas MindMap](https://github.com/Quorafind/Obsidian-Canvas-MindMap). Chat Stream is [MIT licensed](LICENSE).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for build and test instructions. The original Canvas integration drew on [Canvas MindMap](https://github.com/Quorafind/Obsidian-Canvas-MindMap). Provider access uses Pavel Frankov's [AI Providers SDK](https://github.com/pfrankov/obsidian-ai-providers/tree/master/packages/sdk). Chat Stream is [MIT licensed](LICENSE).

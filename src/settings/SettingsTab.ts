@@ -16,6 +16,8 @@ export default class SettingsTab extends PluginSettingTab {
 
 		void this.showConnection(containerEl.createDiv(), settings)
 
+		new Setting(containerEl).setName('Conversation').setHeading()
+
 		new Setting(containerEl)
 			.setName('System prompt')
 			.setDesc('A Canvas ancestor beginning with SYSTEM PROMPT overrides this setting.')
@@ -57,6 +59,7 @@ export default class SettingsTab extends PluginSettingTab {
 	}
 
 	private async showConnection(container: HTMLElement, settings: ChatStreamSettings): Promise<void> {
+		new Setting(container).setName('Connection').setHeading()
 		const connection = new Setting(container).setName('AI Providers')
 		const describe = (message: string) => {
 			const description = createFragment()
@@ -76,7 +79,9 @@ export default class SettingsTab extends PluginSettingTab {
 			const provider = ai.providers.find(candidate => candidate.id === settings.providerId)
 			new Setting(container)
 				.setName('Provider')
-				.setDesc('Choose a connection saved in Settings → AI Providers.')
+				.setDesc(settings.providerId && !provider
+					? 'The saved provider is no longer available. Choose another connection.'
+					: 'Choose a connection saved in Settings → AI Providers.')
 				.addDropdown(dropdown => {
 					dropdown.addOption('', 'Select a provider')
 					for (const candidate of ai.providers) dropdown.addOption(candidate.id, candidate.name)
@@ -96,7 +101,7 @@ export default class SettingsTab extends PluginSettingTab {
 			const defaultModel = provider.model && models.includes(provider.model) ? provider.model : undefined
 			const modelSetting = new Setting(container).setName('Model')
 			if (!models.length) {
-				modelSetting.setDesc('Choose a chat model or refresh the model list in AI Providers.')
+				modelSetting.setDesc('Choose a chat model or refresh the model list in Settings → AI Providers.')
 				return
 			}
 			if (!validModel) modelSetting.setDesc('Choose an available chat model.')

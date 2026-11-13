@@ -34,8 +34,15 @@ export function reasoningModes(ai: IAIProvidersService, provider: IAIProvider, m
 }
 
 export function resolveChat(ai: IAIProvidersService, settings: ChatStreamSettings) {
+	if (!ai.providers.length) {
+		throw new Error('Add a connection in Settings → AI Providers, then select it in Settings → Chat Stream.')
+	}
 	const provider = ai.providers.find(candidate => candidate.id === settings.providerId)
-	if (!provider) throw new Error('Choose a provider in Chat Stream settings.')
+	if (!provider) {
+		throw new Error(settings.providerId
+			? 'The saved provider is no longer available. Select another in Settings → Chat Stream.'
+			: 'Select a provider in Settings → Chat Stream.')
+	}
 	const model = settings.modelId || provider.model
 	if (!model || !chatModels(ai, provider).includes(model)) {
 		throw new Error('Choose an available chat model in Chat Stream settings.')
